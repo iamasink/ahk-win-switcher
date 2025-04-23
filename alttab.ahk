@@ -126,7 +126,7 @@ AltDownLoop() {
 }
 
 *`:: {
-    global showMonitor, selectedIndex
+    global showMonitor, selectedIndex, tabPressed
     showMonitor += 1
     if showMonitor > MonitorGetCount() {
         showMonitor := 1
@@ -251,7 +251,9 @@ ShowSwitcher(onMonitor := MonitorGetPrimary()) {
     switcherGui.Opt("+AlwaysOnTop -Caption +ToolWindow +Resize -DPIScale")
     ; then make it big and centered
     monitorinfo := GetMonitorCenter(onMonitor)
-    switcherGui.Show("w" 500 " h" 500 " x" monitorinfo.x " y" monitorinfo.y)
+    w := 500
+    h := 500
+    switcherGui.Show("w" w " h" h " x" monitorinfo.x - (500 / 2) " y" monitorinfo.y - (500 / 2))
 }
 
 ChangeGuiSelectedText(index, lastIndex) {
