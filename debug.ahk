@@ -1,6 +1,10 @@
 #Requires AutoHotkey v2.0
 #SingleInstance Force
 
+CoordMode("Mouse", "Screen")
+CoordMode("Pixel", "Screen")
+CoordMode("ToolTip", "Screen")
+
 #DllLoad 'dwmapi'
 
 ; if not admin, start as admin
@@ -369,6 +373,143 @@ ShowWindowInfo() {
         SetTimer(() => ToolTip(), -5000)  ; 5s
     } catch as e {
         MsgBox "Error getting window info: " e.Message
+    }
+}
+
+
+f2:: {
+    hwnd := WinExist("A")
+    if !hwnd {
+        MsgBox("No active window")
+        return
+    }
+
+    dpi := DllCall("GetDpiForWindow", "ptr", hwnd, "uint")
+    scalingFactor := dpi / 96
+
+    ; Retrieve the normal position using GetWindowNormalPos
+    normalPos := GetWindowNormalPos(hwnd)
+
+    state := 0
+    if (WinGetMinMax("ahk_id " hwnd) == 1) {
+        state := "maximized"
+    } else if (WinGetMinMax("ahk_id " hwnd) == -1) {
+        state := "minimized"
+    } else {
+        state := "normal"
+    }
+
+    ; Debug: Retrieve the normal position using WINDOWPLACEMENT structure
+    wp := Buffer(44, 0)                   ; Size of WINDOWPLACEMENT struct
+    NumPut("UInt", 44, wp, 0)             ; Set cbSize (structure size)
+
+    if DllCall("GetWindowPlacement", "Ptr", hwnd, "Ptr", wp) {
+        ; Extract values from structure
+        left := NumGet(wp, 28, "Int")   ; rcNormalPosition.left
+        top := NumGet(wp, 32, "Int")   ; rcNormalPosition.top
+        right := NumGet(wp, 36, "Int")   ; rcNormalPosition.right
+        bottom := NumGet(wp, 40, "Int")   ; rcNormalPosition.bottom
+
+        debugNormalPos := {
+            left: Floor(left),
+            top: Floor(top),
+            width: Floor((right - left) * scalingFactor),
+            height: Floor((bottom - top) * scalingFactor)
+        }
+
+        ; Display debug information
+        MsgBox(" Position via getwindowplacement dllcall:`n"
+            . "Left: " debugNormalPos.left "`n"
+            . "Top: " debugNormalPos.top "`n"
+            . "Width: " debugNormalPos.width "`n"
+            . "Height: " debugNormalPos.height "`n"
+            . "Scaling Factor: " scalingFactor "`n"
+            . "DPI: " dpi "`n"
+            . "State: " state "`n"
+            . "Window Title: " WinGetTitle("ahk_id " hwnd) "`n"
+            . "Window ID: " hwnd "`n"
+            . "Process ID: " WinGetPID("ahk_id " hwnd) "`n"
+            . "Process Name: " ProcessGetName(WinGetPID("ahk_id " hwnd)) "`n"
+        )
+    }
+    WinGetPos(&x, &y, &w, &h, "ahk_id " hwnd)
+
+    ; Display the normal position in a message box
+    MsgBox("pos via wingetpos:`n" "Left: " x "`n"
+        . "Top: " y "`n"
+        . "Width: " w "`n"
+        . "Height: " h "`n"
+        . "Scaling Factor: " scalingFactor "`n"
+        . "DPI: " dpi "`n"
+        . "State: " state "`n"
+        . "Window Title: " WinGetTitle("ahk_id " hwnd) "`n"
+        . "Window ID: " hwnd "`n"
+        . "Process ID: " WinGetPID("ahk_id " hwnd) "`n"
+        . "Process Name: " ProcessGetName(WinGetPID("ahk_id " hwnd)) "`n"
+    )
+
+    ; display positions visually with positioned tooltip
+    ToolTip(".", x, y, 2)
+    ToolTip(">", x + w, y, 3)
+    ToolTip(".", x + w, y + h, 4)
+    ToolTip("v", x, y + h, 5)
+
+    ; display other position with tooltips too
+    ToolTip("x", debugNormalPos.left, debugNormalPos.top, 6)
+    ToolTip(">", debugNormalPos.left + debugNormalPos.width, debugNormalPos.top, 7)
+    ToolTip("v", debugNormalPos.left, debugNormalPos.top + debugNormalPos.height, 8)
+    ToolTip("x", debugNormalPos.left + debugNormalPos.width, debugNormalPos.top + debugNormalPos.height, 9)
+
+}
+
+GetWindowNormalPos(hwnd) {
+    static SW_SHOWNORMAL := 1, SW_SHOWMINIMIZED := 2, SW_SHOWMAXIMIZED := 3
+
+    dpi := DllCall("GetDpiForWindow", "ptr", hwnd, "uint")
+    ; 96 is 100% i think
+    scalingFactor := dpi / 96
+    ; scalingFactor := 1
+    ; MsgBox("window: " WinGetTitle("ahk_id " hwnd) "`n" hwnd "`n dpi: " dpi "`n scalingFactor: " scalingFactor)
+
+    ; MsgBox("dpi: " dpi)
+
+    ; Initialize WINDOWPLACEMENT structure
+    wp := Buffer(44, 0)                   ; Size of WINDOWPLACEMENT struct
+    NumPut("UInt", 44, wp, 0)             ; Set cbSize (structure size)
+
+    if (WinGetMinMax("ahk_id " hwnd) == 1) {
+        title := WinGetTitle("ahk_id " hwnd)
+        ; the window is maximised
+        WinGetPos(&x, &y, &w, &h, "ahk_id " hwnd)
+        return {
+            left: Floor((x) * scalingFactor),
+            right: Floor((x + w) * scalingFactor),
+            bottom: Floor((y + h) * scalingFactor),
+            top: Floor((y) * scalingFactor),
+            width: Floor((w) * scalingFactor),
+            height: Floor((h) * scalingFactor)
+        }
+    }
+
+    if DllCall("GetWindowPlacement", "Ptr", hwnd, "Ptr", wp) {
+        ; Extract values from structure
+        showCmd := NumGet(wp, 8, "UInt")  ; showCmd at offset 8
+        left := NumGet(wp, 28, "Int")   ; rcNormalPosition.left
+        top := NumGet(wp, 32, "Int")   ; rcNormalPosition.top
+        right := NumGet(wp, 36, "Int")   ; rcNormalPosition.right
+        bottom := NumGet(wp, 40, "Int")   ; rcNormalPosition.bottom
+
+        return {
+            left: Floor((left) * scalingFactor),
+            right: Floor((right) * scalingFactor),
+            bottom: Floor((bottom) * scalingFactor),
+            top: Floor((top) * scalingFactor),
+            width: Floor((right - left) * scalingFactor),
+            height: Floor((bottom - top) * scalingFactor),
+            ; state: showCmd = SW_SHOWMINIMIZED ? "minimized"
+            ;     : showCmd = SW_SHOWMAXIMIZED ? "maximized"
+            ;         : "normal"
+        }
     }
 }
 
