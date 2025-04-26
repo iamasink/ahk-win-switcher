@@ -76,6 +76,9 @@ f11:: {
 
 AltDownLoop() {
     global altDown, altPressTime, showGUI, tabPressed, switcherShown, selectedIndex, lastIndex, windows, showMonitor
+    ; tooltip("alt down`n" tabPressed "`n" selectedIndex "`n" lastIndex "`n" windows.Length "`n" showMonitor)
+    ; tabtext := tabPressed ? "tab pressed" : "no tab pressed"
+    ; ToolTip("Alt is being held down.`nTab Status: " tabtext "`nSelected Index: " selectedIndex "`nLast Index: " lastIndex "`nNumber of Windows: " windows.Length "`nMonitor: " showMonitor "`nAlt Press Time: " altPressTime, , , 2)
     if (altDown) {
         if (tabPressed) {
             if (windows.Length = 0) {
@@ -341,11 +344,11 @@ ShowSwitcher(onMonitor := MonitorGetPrimary()) {
             thumbWidth := Floor(thumbHeight * (windowW / windowH))
 
 
-            backgroundctl := switcherGui.AddText("y" yPos " x" xPos - 10 " w" thumbWidth + 20 " h" thumbHeight + 50 " c" textColour, "")
+            backgroundctl := switcherGui.AddText("y" yPos - 4 " x" xPos - 10 " w" thumbWidth + 20 " h" thumbHeight + 50 " c" textColour, "")
             logoctl := switcherGui.addPicture("y" yPos  " x" xPos " w32 h32", GetWindowIcon(w.hwnd))
             textctl := switcherGui.AddText("y" yPos + 8 " x" xPos + 40 " c" textColour, "w" index ": " w.title)
             ; run this function with parameters
-            textctl.OnEvent("Click", TextClick.Bind(textctl, index))
+            backgroundctl.OnEvent("Click", TextClick.Bind(textctl, index))
             backgroundctl.OnEvent("ContextMenu", TextMiddleClick.Bind(textctl, index))
             switcherGuiTexts.InsertAt(index, backgroundctl)
             ; switcherGuiBackgrounds.InsertAt(index, backgroundctl)
@@ -424,15 +427,21 @@ ShowSwitcher(onMonitor := MonitorGetPrimary()) {
 }
 
 TextClick(ctl, index, text, idk) {
-    global selectedIndex, altDown
+    global selectedIndex, altDown, windows, lastIndex, tabPressed
     ; MsgBox("hi " index)
     ; HideSwitcher()
     ; set the index then act as if alt was released
     ; selectedIndex := index
     ChangeSelectedIndex(index)
-    ; tabPressed := false
-    altDown := false
+    tabPressed := false
+    ; altDown := false
     HideSwitcher()
+    if (windows.Length > 0) {
+        FocusWindow(windows[selectedIndex].hwnd)
+    }
+    windows := []
+    selectedIndex := 1
+    lastIndex := 1
     ; FocusWindow(windows[index].hwnd)
 }
 
@@ -516,7 +525,8 @@ ChangeGuiSelectedText(index, lastIndex) {
 ; }
 
 HideSwitcher() {
-    global switcherGui
+    global switcherGui, switcherShown
+    switcherShown := false
     switcherGui.Destroy()
 }
 
