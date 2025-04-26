@@ -4,26 +4,38 @@ CoordMode("Mouse", "Screen")
 
 #DllLoad 'dwmapi'
 
+; main config options
+; the background colour of the main switcher window
+global backgroundColour := "202020"
+; the text colour of text and window titles
+global textColour := "ffffff"
+; the colour of the selected window highlight
+global selectedColour := "ff8aec"
+; required to alt tab from admin windows, eg task manager
+; suggested true, but false can be useful for debugging
+global runAsAdmin := false
+; true = show thumbnails, horizonal layout, false = no thumbnails, vertical layout
+global useThumbnails := true
 
 ; if not admin, start as admin
 ; taken from https://www.autohotkey.com/boards/viewtopic.php?p=523250#p523250
 
-; if (!A_IsAdmin) {
-;     try {
-;         ; MsgBox("Running as admin...")
-;         Run("*RunAs `"" A_ScriptFullPath "`"")
-;         ; wait, so that the script doesnt continue running and instead restarts as admin (hopefully) before this runs out, otherwise it will just close.
-;         Sleep(10000)
-;         MsgBox("Couldn't run " A_ScriptName " as admin! Exiting..")
-;         Sleep(5000)
-;         ExitApp()
-;     }
-;     catch {
-;         MsgBox("Couldn't run " A_ScriptName " as admin! Exiting..")
-;         Sleep(5000)
-;         ExitApp()
-;     }
-; }
+if (runAsAdmin && !A_IsAdmin) {
+    try {
+        ; MsgBox("Running as admin...")
+        Run("*RunAs `"" A_ScriptFullPath "`"")
+        ; wait, so that the script doesnt continue running and instead restarts as admin (hopefully) before this runs out, otherwise it will just close.
+        Sleep(10000)
+        MsgBox("Couldn't run " A_ScriptName " as admin! Exiting..")
+        Sleep(5000)
+        ExitApp()
+    }
+    catch {
+        MsgBox("Couldn't run " A_ScriptName " as admin! Exiting..")
+        Sleep(5000)
+        ExitApp()
+    }
+}
 
 global altDown := false
 global tabPressed := false
@@ -41,10 +53,6 @@ global iconCache := Map()
 global showMonitor := 0
 
 ;
-
-global backgroundColour := "202020"
-global textColour := "ffffff"
-global selectedColour := "ff8aec"
 
 f12:: {
     ExitApp
@@ -159,25 +167,25 @@ AltDownLoop() {
     HandleTilde(1)
 }
 
-+`::{
++`:: {
     global showMonitor, selectedIndex, tabPressed
     tabPressed := true
     HandleTilde(-1)
 }
 
-*1::HandleNumber(1)
-*2::HandleNumber(2)
-*3::HandleNumber(3)
-*4::HandleNumber(4)
-*5::HandleNumber(5)
-*6::HandleNumber(6)
-*7::HandleNumber(7)
-*8::HandleNumber(8)
-*9::HandleNumber(9)
-*0::HandleNumber(0)
+*1:: HandleNumber(1)
+*2:: HandleNumber(2)
+*3:: HandleNumber(3)
+*4:: HandleNumber(4)
+*5:: HandleNumber(5)
+*6:: HandleNumber(6)
+*7:: HandleNumber(7)
+*8:: HandleNumber(8)
+*9:: HandleNumber(9)
+*0:: HandleNumber(0)
 
-*WheelDown::HandleTab(1)
-*WheelUp::HandleTab(-1)
+*WheelDown:: HandleTab(1)
+*WheelUp:: HandleTab(-1)
 
 ; rebind scroll click to right click
 *MButton::RButton
@@ -221,7 +229,7 @@ HandleTilde(change) {
 }
 
 HandleNumber(num) {
-    global showMonitor, selectedIndex,lastIndex, tabPressed, windows
+    global showMonitor, selectedIndex, lastIndex, tabPressed, windows
     if (num > 0 && num < windows.Length) {
         ChangeSelectedIndex(num)
         ; selectedIndex := num
@@ -243,13 +251,6 @@ BuildWindowList(monitorNum := MonitorGetPrimary()) {
     static GW_OWNER := 4, DWMWA_CLOAKED := 14
     scriptPID := ProcessExist()
     for hwnd in WinGetList() {
-        winpos := GetWindowNormalPos(hwnd)
-        centerX := winpos.left + (winpos.width // 2)
-        centerY := winpos.top + (winpos.height // 2)
-
-        winMon := GetMonitorAt(centerX, centerY)
-        if (winMon != monitorNum)
-            continue
 
         if !DllCall("IsWindowVisible", "Ptr", hwnd) {
             continue
@@ -293,6 +294,14 @@ BuildWindowList(monitorNum := MonitorGetPrimary()) {
         if (title = "" || title ~= "i)(Program Manager|Windows Input Experience|SearchApp|ShellExperienceHost)")
             continue
 
+        winpos := GetWindowNormalPos(hwnd)
+        centerX := winpos.left + (winpos.width // 2)
+        centerY := winpos.top + (winpos.height // 2)
+
+        winMon := GetMonitorAt(centerX, centerY)
+        if (winMon != monitorNum)
+            continue
+
         ; if !existingHWNDs.Has(hwnd) {
         windows.Push({ hwnd: hwnd, title: title })
         ; existingHWNDs.Set(hwnd, true)
@@ -301,11 +310,8 @@ BuildWindowList(monitorNum := MonitorGetPrimary()) {
 }
 
 ShowSwitcher(onMonitor := MonitorGetPrimary()) {
-    global switcherGui, windows, selectedIndex, switcherGuiTexts, switcherShown, showMonitor, backgroundColour, textColour
-    useThumbnails := true
+    global switcherGui, windows, selectedIndex, switcherGuiTexts, switcherShown, showMonitor, backgroundColour, textColour, useThumbnails
     if (useThumbnails) {
-
-
 
         try {
             HideSwitcher()
@@ -315,10 +321,10 @@ ShowSwitcher(onMonitor := MonitorGetPrimary()) {
         ; WinSetTransColor("000000", "ahk_id " switcherGui.hwnd)
         ; WinSetRegion("W100 H100")
         switcherGui.Opt("-Caption +ToolWindow +Resize -DPIScale")
-    
+
         switcherGuiTexts := []
         switcherGui.AddText("y0 x10 c" textColour, "Monitor: " (showMonitor ? showMonitor : GetMouseMonitor()))
-    
+
         y := 30
         ydiff := 400
         thumbHeight := 200
@@ -326,26 +332,21 @@ ShowSwitcher(onMonitor := MonitorGetPrimary()) {
         row := 0
         numonrow := 0
 
-
-
         winWidth := 0
         winHeight := 0
         xPos := 100
         yPos := 10
-        
-        
-        for index, w in windows {
 
+        for index, w in windows {
 
             windowinfo := GetWindowNormalPos(w.hwnd)
             windowW := windowinfo.width
-            windowH :=  windowinfo.height
+            windowH := windowinfo.height
             ; calculate thumbwidth keeping aspect ratio
             thumbWidth := Floor(thumbHeight * (windowW / windowH))
 
-
             backgroundctl := switcherGui.AddText("y" yPos - 4 " x" xPos - 10 " w" thumbWidth + 20 " h" thumbHeight + 50 " c" textColour, "")
-            logoctl := switcherGui.addPicture("y" yPos  " x" xPos " w32 h32", GetWindowIcon(w.hwnd))
+            logoctl := switcherGui.addPicture("y" yPos " x" xPos " w32 h32", GetWindowIcon(w.hwnd))
             textctl := switcherGui.AddText("y" yPos + 8 " x" xPos + 40 " c" textColour, "w" index ": " w.title)
             ; run this function with parameters
             backgroundctl.OnEvent("Click", TextClick.Bind(textctl, index))
@@ -354,15 +355,12 @@ ShowSwitcher(onMonitor := MonitorGetPrimary()) {
             ; switcherGuiBackgrounds.InsertAt(index, backgroundctl)
             ; switcherGuiLogos.InsertAt(index, logoctl)
 
-
             ; MsgBox(w.title "`n w: " windowW " h: " windowH)
 
-            
             ; MsgBox("thumbwidth: " thumbWidth)
 
+            CreateThumbnail(w.hwnd, switcherGui.hwnd, xPos, yPos + 35, windowW, windowH, thumbWidth, thumbHeight)
 
-            CreateThumbnail(w.hwnd,switcherGui.hwnd,xPos,yPos + 35,windowW,windowH,thumbWidth,thumbHeight)
-            
             xPos += thumbWidth + 50
             numonrow += 1
 
@@ -391,38 +389,38 @@ ShowSwitcher(onMonitor := MonitorGetPrimary()) {
         switcherGui.Show("w" w " h" h "x" monitorinfo.x - (w / 2) " y" monitorinfo.y - (h / 2))
         switcherShown := true
     } else {
-            try {
-                HideSwitcher()
-            }
-            switcherGui := Gui("")
-            switcherGui.BackColor := backgroundColour
-            ; WinSetTransColor("000000", "ahk_id " switcherGui.hwnd)
-            ; WinSetRegion("W100 H100")
-            switcherGui.Opt("-Caption +ToolWindow +Resize -DPIScale")
-            switcherGuiTexts := []
-            switcherGui.AddText("y0 x10 c" textColour, "Monitor: " (showMonitor ? showMonitor : GetMouseMonitor()))
-            
-            y := 30
-            ydiff := 40
-            
-            for index, w in windows {
-                switcherGui.addPicture("y" y - 10 " x5 w32 h32", GetWindowIcon(w.hwnd))
-                textctl := switcherGui.AddText("y" y " x40 c" textColour, "w" index ": " w.title)
-                ; run this function with parameters
-                textctl.OnEvent("Click", TextClick.Bind(textctl, index))
-                switcherGuiTexts.InsertAt(index, textctl)
-                y += ydiff
-            }
-            monitorinfo := GetMonitorCenter(onMonitor)
-            switcherGui.Show("NoActivate x10000 y10000 w" 0 " h" 0)
-            ; first make the window far away and very small, to hide the flash of white (maybe theres a better way to fix this)
-            w := 500
-            h := 500
-            switcherGui.Opt("+AlwaysOnTop -Caption +ToolWindow +Resize -DPIScale")
-            ; ensure all other guis are removed
-            ; then make it big and centered
-            switcherGui.Show("w" w " h" h " x" monitorinfo.x - (500 / 2) " y" monitorinfo.y - (500 / 2))
-            switcherShown := true
+        try {
+            HideSwitcher()
+        }
+        switcherGui := Gui("")
+        switcherGui.BackColor := backgroundColour
+        ; WinSetTransColor("000000", "ahk_id " switcherGui.hwnd)
+        ; WinSetRegion("W100 H100")
+        switcherGui.Opt("-Caption +ToolWindow +Resize -DPIScale")
+        switcherGuiTexts := []
+        switcherGui.AddText("y0 x10 c" textColour, "Monitor: " (showMonitor ? showMonitor : GetMouseMonitor()))
+
+        y := 30
+        ydiff := 40
+
+        for index, w in windows {
+            switcherGui.addPicture("y" y - 10 " x5 w32 h32", GetWindowIcon(w.hwnd))
+            textctl := switcherGui.AddText("y" y " x40 c" textColour, "w" index ": " w.title)
+            ; run this function with parameters
+            textctl.OnEvent("Click", TextClick.Bind(textctl, index))
+            switcherGuiTexts.InsertAt(index, textctl)
+            y += ydiff
+        }
+        monitorinfo := GetMonitorCenter(onMonitor)
+        switcherGui.Show("NoActivate x10000 y10000 w" 0 " h" 0)
+        ; first make the window far away and very small, to hide the flash of white (maybe theres a better way to fix this)
+        w := 500
+        h := 500
+        switcherGui.Opt("+AlwaysOnTop -Caption +ToolWindow +Resize -DPIScale")
+        ; ensure all other guis are removed
+        ; then make it big and centered
+        switcherGui.Show("w" w " h" h " x" monitorinfo.x - (500 / 2) " y" monitorinfo.y - (500 / 2))
+        switcherShown := true
     }
 }
 
@@ -466,8 +464,6 @@ ChangeSelectedIndex(index) {
     selectedIndex := index
 }
 
-
-
 CreateThumbnail(windowHwnd, thumbnailHwnd, guiPosX, guiPosY, sourceW, sourceH, thumbW, thumbH) {
 
     DllCall('dwmapi\DwmRegisterThumbnail', 'Ptr', thumbnailHwnd, 'Ptr', windowHwnd, 'Ptr*', &hThumbnailId := 0,
@@ -499,14 +495,14 @@ CreateThumbnail(windowHwnd, thumbnailHwnd, guiPosX, guiPosY, sourceW, sourceH, t
 ChangeGuiSelectedText(index, lastIndex) {
     global switcherGuiTexts, switcherShown
     try {
-            if (lastIndex >= 1 && lastIndex <= switcherGuiTexts.Length) {
-                switcherGuiTexts[lastIndex].Opt("Background" backgroundColour)
-                switcherGuiTexts[lastIndex].Redraw()
-            }
-            if (index >= 1 && index <= switcherGuiTexts.Length) {
-                switcherGuiTexts[index].Opt("Background" selectedColour)
-                switcherGuiTexts[index].Redraw()
-            }
+        if (lastIndex >= 1 && lastIndex <= switcherGuiTexts.Length) {
+            switcherGuiTexts[lastIndex].Opt("Background" backgroundColour)
+            switcherGuiTexts[lastIndex].Redraw()
+        }
+        if (index >= 1 && index <= switcherGuiTexts.Length) {
+            switcherGuiTexts[index].Opt("Background" selectedColour)
+            switcherGuiTexts[index].Redraw()
+        }
     }
 }
 
@@ -565,23 +561,33 @@ GetMonitorCenter(monitorNum) {
 GetWindowNormalPos(hwnd) {
     static SW_SHOWNORMAL := 1, SW_SHOWMINIMIZED := 2, SW_SHOWMAXIMIZED := 3
 
+    dpi := DllCall("GetDpiForWindow", "ptr", hwnd, "uint")
+    ; 96 is 100% i think
+    scalingFactor := dpi / 96
+    ; scalingFactor := 1
+    ; MsgBox("window: " WinGetTitle("ahk_id " hwnd) "`n" hwnd "`n dpi: " dpi "`n scalingFactor: " scalingFactor)
+
+    ; MsgBox("dpi: " dpi)
+
     ; Initialize WINDOWPLACEMENT structure
     wp := Buffer(44, 0)                   ; Size of WINDOWPLACEMENT struct
     NumPut("UInt", 44, wp, 0)             ; Set cbSize (structure size)
 
-    if (WinGetMinMax("ahk_id " hwnd) == 1) {
+    if (WinGetMinMax("ahk_id " hwnd) == 1 || WinGetMinMax("ahk_id " hwnd) == 0) {
         title := WinGetTitle("ahk_id " hwnd)
-        ; the window is maximised
+        ; the window is maximised or normal 
         WinGetPos(&x, &y, &w, &h, "ahk_id " hwnd)
         return {
-            left : x,
-            right : x+w,
-            bottom : y+h,
-            top : y,
-            width: w,
-            height: h
+            left: Floor((x) * scalingFactor),
+            right: Floor((x + w) * scalingFactor),
+            bottom: Floor((y + h) * scalingFactor),
+            top: Floor((y) * scalingFactor),
+            width: Floor((w) * scalingFactor),
+            height: Floor((h) * scalingFactor)
         }
     }
+
+    ; MsgBox("window: " WinGetTitle("ahk_id " hwnd) "`n" hwnd "`n dpi: " dpi "`n scalingFactor: " scalingFactor)
 
     if DllCall("GetWindowPlacement", "Ptr", hwnd, "Ptr", wp) {
         ; Extract values from structure
@@ -592,12 +598,12 @@ GetWindowNormalPos(hwnd) {
         bottom := NumGet(wp, 40, "Int")   ; rcNormalPosition.bottom
 
         return {
-            left: left,
-            right: right,
-            bottom: bottom,
-            top: top,
-            width: right - left,
-            height: bottom - top,
+            left: Floor((left) * scalingFactor),
+            right: Floor((right) * scalingFactor),
+            bottom: Floor((bottom) * scalingFactor),
+            top: Floor((top) * scalingFactor),
+            width: Floor((right - left) * scalingFactor),
+            height: Floor((bottom - top) * scalingFactor),
             ; state: showCmd = SW_SHOWMINIMIZED ? "minimized"
             ;     : showCmd = SW_SHOWMAXIMIZED ? "maximized"
             ;         : "normal"
