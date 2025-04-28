@@ -321,9 +321,85 @@ ShowSwitcher(onMonitor := MonitorGetPrimary()) {
 
     guiUpdateLock := true
     try {
-        
-            global switcherGui, windows, selectedIndex, switcherGuiTexts, switcherShown, showMonitor, backgroundColour, textColour, useThumbnails
-            if (useThumbnails) {
+        global switcherGui, windows, selectedIndex, switcherGuiTexts, switcherShown, showMonitor, backgroundColour, textColour, useThumbnails
+        if (useThumbnails) {
+            try {
+                HideSwitcher()
+            }
+            switcherGui := Gui("")
+            switcherGui.BackColor := backgroundColour
+            ; WinSetTransColor("000000", "ahk_id " switcherGui.hwnd)
+            ; WinSetRegion("W100 H100")
+            switcherGui.Opt("-Caption +ToolWindow +Resize -DPIScale")
+
+            switcherGuiTexts := []
+            switcherGui.AddText("y0 x10 c" textColour, "Monitor: " (showMonitor ? showMonitor : GetMouseMonitor()))
+
+            y := 30
+            ydiff := 400
+            thumbHeight := 200
+            rowHeight := thumbHeight + 50
+            row := 0
+            numonrow := 0
+
+            winWidth := 0
+            winHeight := 0
+            xPos := 100
+            yPos := 10
+
+            for index, w in windows {
+
+                windowinfo := GetWindowNormalPos(w.hwnd)
+                windowW := windowinfo.width
+                windowH := windowinfo.height
+                ; calculate thumbwidth keeping aspect ratio
+                thumbWidth := Floor(thumbHeight * (windowW / windowH))
+
+                backgroundctl := switcherGui.AddText("y" yPos - 4 " x" xPos - 10 " w" thumbWidth + 20 " h" thumbHeight + 50 " c" textColour, "")
+                logoctl := switcherGui.addPicture("y" yPos " x" xPos " w32 h32", GetWindowIcon(w.hwnd))
+                textctl := switcherGui.AddText("y" yPos + 8 " x" xPos + 40 " c" textColour, "w" index ": " w.title)
+                ; run this function with parameters
+                backgroundctl.OnEvent("Click", TextClick.Bind(textctl, index))
+                backgroundctl.OnEvent("ContextMenu", TextMiddleClick.Bind(textctl, index))
+                switcherGuiTexts.InsertAt(index, backgroundctl)
+                ; switcherGuiBackgrounds.InsertAt(index, backgroundctl)
+                ; switcherGuiLogos.InsertAt(index, logoctl)
+
+                ; MsgBox(w.title "`n w: " windowW " h: " windowH)
+
+                ; MsgBox("thumbwidth: " thumbWidth)
+
+                CreateThumbnail(w.hwnd, switcherGui.hwnd, xPos, yPos + 35, windowW, windowH, thumbWidth, thumbHeight)
+
+                xPos += thumbWidth + 50
+                numonrow += 1
+
+                if (xPos > winWidth) {
+                    winWidth := xPos + 50
+                }
+                if (yPos + rowHeight > winHeight) {
+                    winHeight := yPos + rowHeight
+                }
+
+                if (xPos > A_ScreenWidth * 0.8) {
+                    xPos := 100
+                    yPos += rowHeight
+                    numonrow := 0
+                }
+
+            }
+            monitorinfo := GetMonitorCenter(onMonitor)
+            switcherGui.Show("NoActivate x10000 y10000 w" 0 " h" 0)
+            ; first make the window far away and very small, to hide the flash of white (maybe theres a better way to fix this)
+            w := winWidth + 50
+            h := winHeight + 50
+            switcherGui.Opt("+AlwaysOnTop -Caption +ToolWindow +Resize -DPIScale")
+            ; ensure all other guis are removed
+            ; then make it big and centered
+            switcherGui.Show("w" w " h" h "x" monitorinfo.x - (w / 2) " y" monitorinfo.y - (h / 2))
+            switcherShown := true
+            }
+            else {
                 try {
                     HideSwitcher()
                 }
@@ -332,112 +408,35 @@ ShowSwitcher(onMonitor := MonitorGetPrimary()) {
                 ; WinSetTransColor("000000", "ahk_id " switcherGui.hwnd)
                 ; WinSetRegion("W100 H100")
                 switcherGui.Opt("-Caption +ToolWindow +Resize -DPIScale")
-
                 switcherGuiTexts := []
                 switcherGui.AddText("y0 x10 c" textColour, "Monitor: " (showMonitor ? showMonitor : GetMouseMonitor()))
 
-                y := 30
-                ydiff := 400
-                thumbHeight := 200
-                rowHeight := thumbHeight + 50
-                row := 0
-                numonrow := 0
+            y := 30
+            ydiff := 40
 
-                winWidth := 0
-                winHeight := 0
-                xPos := 100
-                yPos := 10
-
-                for index, w in windows {
-
-                    windowinfo := GetWindowNormalPos(w.hwnd)
-                    windowW := windowinfo.width
-                    windowH := windowinfo.height
-                    ; calculate thumbwidth keeping aspect ratio
-                    thumbWidth := Floor(thumbHeight * (windowW / windowH))
-
-                    backgroundctl := switcherGui.AddText("y" yPos - 4 " x" xPos - 10 " w" thumbWidth + 20 " h" thumbHeight + 50 " c" textColour, "")
-                    logoctl := switcherGui.addPicture("y" yPos " x" xPos " w32 h32", GetWindowIcon(w.hwnd))
-                    textctl := switcherGui.AddText("y" yPos + 8 " x" xPos + 40 " c" textColour, "w" index ": " w.title)
-                    ; run this function with parameters
-                    backgroundctl.OnEvent("Click", TextClick.Bind(textctl, index))
-                    backgroundctl.OnEvent("ContextMenu", TextMiddleClick.Bind(textctl, index))
-                    switcherGuiTexts.InsertAt(index, backgroundctl)
-                    ; switcherGuiBackgrounds.InsertAt(index, backgroundctl)
-                    ; switcherGuiLogos.InsertAt(index, logoctl)
-
-                    ; MsgBox(w.title "`n w: " windowW " h: " windowH)
-
-                    ; MsgBox("thumbwidth: " thumbWidth)
-
-                    CreateThumbnail(w.hwnd, switcherGui.hwnd, xPos, yPos + 35, windowW, windowH, thumbWidth, thumbHeight)
-
-                    xPos += thumbWidth + 50
-                    numonrow += 1
-
-                    if (xPos > winWidth) {
-                        winWidth := xPos + 50
-                    }
-                    if (yPos + rowHeight > winHeight) {
-                        winHeight := yPos + rowHeight
-                    }
-
-                    if (xPos > A_ScreenWidth * 0.8) {
-                        xPos := 100
-                        yPos += rowHeight
-                        numonrow := 0
-                    }
-
-                }
-                monitorinfo := GetMonitorCenter(onMonitor)
-                switcherGui.Show("NoActivate x10000 y10000 w" 0 " h" 0)
-                ; first make the window far away and very small, to hide the flash of white (maybe theres a better way to fix this)
-                w := winWidth + 50
-                h := winHeight + 50
-                switcherGui.Opt("+AlwaysOnTop -Caption +ToolWindow +Resize -DPIScale")
-                ; ensure all other guis are removed
-                ; then make it big and centered
-                switcherGui.Show("w" w " h" h "x" monitorinfo.x - (w / 2) " y" monitorinfo.y - (h / 2))
-                switcherShown := true
-                }
-                else {
-                    try {
-                        HideSwitcher()
-                    }
-                    switcherGui := Gui("")
-                    switcherGui.BackColor := backgroundColour
-                    ; WinSetTransColor("000000", "ahk_id " switcherGui.hwnd)
-                    ; WinSetRegion("W100 H100")
-                    switcherGui.Opt("-Caption +ToolWindow +Resize -DPIScale")
-                    switcherGuiTexts := []
-                    switcherGui.AddText("y0 x10 c" textColour, "Monitor: " (showMonitor ? showMonitor : GetMouseMonitor()))
-
-                y := 30
-                ydiff := 40
-
-                for index, w in windows {
-                    switcherGui.addPicture("y" y - 10 " x5 w32 h32", GetWindowIcon(w.hwnd))
-                    textctl := switcherGui.AddText("y" y " x40 c" textColour, "w" index ": " w.title)
-                    ; run this function with parameters
-                    textctl.OnEvent("Click", TextClick.Bind(textctl, index))
-                    switcherGuiTexts.InsertAt(index, textctl)
-                    y += ydiff
-                }
-                monitorinfo := GetMonitorCenter(onMonitor)
-                switcherGui.Show("NoActivate x10000 y10000 w" 0 " h" 0)
-                ; first make the window far away and very small, to hide the flash of white (maybe theres a better way to fix this)
-                w := 500
-                h := 500
-                switcherGui.Opt("+AlwaysOnTop -Caption +ToolWindow +Resize -DPIScale")
-                ; ensure all other guis are removed
-                ; then make it big and centered
-                switcherGui.Show("w" w " h" h " x" monitorinfo.x - (500 / 2) " y" monitorinfo.y - (500 / 2))
-                switcherShown := true
+            for index, w in windows {
+                switcherGui.addPicture("y" y - 10 " x5 w32 h32", GetWindowIcon(w.hwnd))
+                textctl := switcherGui.AddText("y" y " x40 c" textColour, "w" index ": " w.title)
+                ; run this function with parameters
+                textctl.OnEvent("Click", TextClick.Bind(textctl, index))
+                switcherGuiTexts.InsertAt(index, textctl)
+                y += ydiff
+            }
+            monitorinfo := GetMonitorCenter(onMonitor)
+            switcherGui.Show("NoActivate x10000 y10000 w" 0 " h" 0)
+            ; first make the window far away and very small, to hide the flash of white (maybe theres a better way to fix this)
+            w := 500
+            h := 500
+            switcherGui.Opt("+AlwaysOnTop -Caption +ToolWindow +Resize -DPIScale")
+            ; ensure all other guis are removed
+            ; then make it big and centered
+            switcherGui.Show("w" w " h" h " x" monitorinfo.x - (500 / 2) " y" monitorinfo.y - (500 / 2))
+            switcherShown := true
             }
 
-            }
-            finally {
-                guiUpdateLock := false
+    }
+    finally {
+        guiUpdateLock := false
     }
 }
 
