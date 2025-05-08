@@ -11,9 +11,12 @@ global backgroundColour := "202020"
 global textColour := "ffffff"
 ; the colour of the selected window highlight
 global selectedColour := "ff8aec"
+
+global debug := true
+
 ; required to alt tab from admin windows, eg task manager
 ; suggested true, but false can be useful for debugging
-global runAsAdmin := false
+global runAsAdmin := !debug
 ; true = show thumbnails, horizonal layout, false = no thumbnails, vertical layout
 global useThumbnails := true
 ; delay before showing the switcher, in ms
@@ -60,11 +63,82 @@ global guiUpdateLock := false
 ProcessSetPriority("H")
 
 
-;
+#HotIf debug
 
 f12:: {
     ExitApp
 }
+f11:: {
+    pos := MouseGetPos(&x, &y)
+    mon := GetMonitorAt(x, y)
+    ToolTip("Monitor: " mon "`nX: " x "`nY: " y, , , 2)
+}
+
+f10:: {
+    win := WinActive("A")
+
+    winpos := GetWindowNormalPos(win)
+    centerX := winpos.left + (winpos.width // 2)
+    centerY := winpos.top + (winpos.height // 2)
+
+
+    winpos2 := WinGetPos(&x, &y, &w, &h, "ahk_id " win)
+
+    CoordMode("ToolTip")
+    CoordMode("Mouse")
+
+    Tooltip("a", centerX, centerY, 2)
+    ; add tooltips around window border
+    ToolTip("b", winpos.left, winpos.top, 3)
+    ToolTip("c", winpos.right, winpos.top, 4)
+    ToolTip("d", winpos.left, winpos.bottom, 5)
+    ToolTip("e", winpos.right, winpos.bottom, 6)
+
+    ; using other method
+    ToolTip("f", x, y, 7)
+    ToolTip("g", x + w, y, 8)
+    ToolTip("h", x, y + h, 9)
+    ToolTip("i", x + w, y + h, 10)
+
+    jpos := x + w // 2
+    jpos2 := y + h // 2
+
+    ToolTip("j", jpos, jpos2, 11)
+
+    ; MouseMove(jpos, jpos2, 0)
+    ; use dll to set mouse pos
+    ; DllCall("SetCursorPos", "Int", jpos, "Int", jpos2)
+
+    ; animate mouse pos using dll call
+        ; Smoothly animate mouse movement to the center of the window
+        MouseGetPos(&mousex, &mousey)
+        steps := 50
+        stepX := (jpos - mousex) / steps
+        stepY := (jpos2 - mousey) / steps
+    
+        Loop steps {
+            DllCall("SetCursorPos", "Int", mousex += stepX, "Int", mousey += stepY)
+            Sleep(2)
+        }
+        ; Ensure the mouse ends up exactly at the center
+        DllCall("SetCursorPos", "Int", jpos, "Int", jpos2)
+    
+    
+
+
+    ; MsgBox("Window Handle: " win "`n"
+    ;     "Title: " WinGetTitle("ahk_id " win) "`n"
+    ;     "Left: " winpos.left "`n"
+    ;     "Top: " winpos.top "`n"
+    ;     "Width: " winpos.width "`n"
+    ;     "Height: " winpos.height "`n"
+    ;     "Right: " winpos.right "`n"
+    ;     "Bottom: " winpos.bottom "`n"
+    ;     "Center X: " centerX "`n"
+    ;     "Center Y: " centerY)
+}
+
+#HotIf
 
 ; if alt tab tapped, just change switcher
 ; if alt is still held after some time, show menu
@@ -93,10 +167,10 @@ AltDownLoop() {
     if (altDown) {
         if (tabPressed) {
             if (windows.Length = 0) {
-                if (!selectedMonitor) {
-                    activewin := WinActive("A")
-                    selectedMonitor := GetWindowMonitor(activewin)
-                }
+                ; if (!selectedMonitor) {
+                ;     activewin := WinActive("A")
+                ;     selectedMonitor := GetWindowMonitor(activewin)
+                ; }
                 BuildWindowList(selectedMonitor ? selectedMonitor : GetMouseMonitor())
             }
             if (altPressTime + switcherDelay < A_TickCount) {
@@ -127,7 +201,7 @@ AltDownLoop() {
             ;     tempwindowstring := tempwindowstring w.title "`n"
             ; }
             ; ToolTip("focus index " selectedIndex "`n windows: " tempwindowstring)
-            if (windows.Length > 0) {
+            if (windows.Length > 0 && selectedIndex) {
                 FocusWindow(windows[selectedIndex].hwnd)
             }
             windows := []
@@ -197,6 +271,51 @@ AltDownLoop() {
 *WheelDown:: HandleTab(1)
 *WheelUp:: HandleTab(-1)
 
+*q:: {
+    ; jump mouse to active win
+    global selectedIndex, windows
+
+    if (windows.Length > 0) {
+        win := windows[selectedIndex].hwnd
+    } else {
+        win := WinActive("A")
+    }
+
+    MoveMouseToWindowCenter(win)
+}
+
+MoveMouseToWindowCenter(hwnd) {
+
+    ; with mouse positions, its different to thumbnail stuff, override scaling to 100%
+    pos := GetWindowNormalPos(hwnd, 1)
+    x := pos.left
+    y := pos.top
+    w := pos.width
+    h := pos.height
+
+    ; WinGetPos(&x, &y, &w, &h, "ahk_id " hwnd)
+    centerX := x + (w // 2)
+    centerY := y + (h // 2)
+
+    BetterMouseMove(centerX, centerY, 5)
+}
+
+; improved MouseMove() function
+BetterMouseMove(x, y, steps := 50, sleepTime := 2) {
+        ; Smoothly animate mouse movement to the position
+        MouseGetPos(&mousex, &mousey)
+        stepX := (x - mousex) / steps
+        stepY := (y - mousey) / steps
+    
+        Loop steps {
+            DllCall("SetCursorPos", "Int", mousex += stepX, "Int", mousey += stepY)
+            Sleep(sleepTime)
+        }
+        ; Ensure the mouse ends up exactly at the center
+        DllCall("SetCursorPos", "Int", x, "Int", y)
+
+}
+
 ; rebind scroll click to right click
 *MButton::RButton
 #HotIf
@@ -234,9 +353,10 @@ HandleTilde(change) {
     ; ToolTip("change: " change "`n" showMonitor)
     switcherShown := true
     BuildWindowList(selectedMonitor)
-    ShowSwitcher()
     lastIndex := selectedIndex
     selectedIndex := 1
+
+    ShowSwitcher()
     if switcherShown {
         ChangeGuiSelectedText(selectedIndex, lastIndex)
     }
@@ -629,12 +749,12 @@ GetMonitorCenter(monitorNum) {
 }
 
 ; get the window's actual size and pos, even if its minimized
-GetWindowNormalPos(hwnd) {
+GetWindowNormalPos(hwnd, scalingFactorOverride := 0) {
     static SW_SHOWNORMAL := 1, SW_SHOWMINIMIZED := 2, SW_SHOWMAXIMIZED := 3
 
     dpi := DllCall("GetDpiForWindow", "ptr", hwnd, "uint")
     ; 96 is 100% i think
-    scalingFactor := dpi / 96
+    scalingFactor := scalingFactorOverride ? scalingFactorOverride : dpi / 96
     ; scalingFactor := 1
     ; MsgBox("window: " WinGetTitle("ahk_id " hwnd) "`n" hwnd "`n dpi: " dpi "`n scalingFactor: " scalingFactor)
 
@@ -648,6 +768,7 @@ GetWindowNormalPos(hwnd) {
         title := WinGetTitle("ahk_id " hwnd)
         ; the window is maximised or normal
         WinGetPos(&x, &y, &w, &h, "ahk_id " hwnd)
+
         return {
             left: Floor((x) * scalingFactor),
             right: Floor((x + w) * scalingFactor),
@@ -655,6 +776,7 @@ GetWindowNormalPos(hwnd) {
             top: Floor((y) * scalingFactor),
             width: Floor((w) * scalingFactor),
             height: Floor((h) * scalingFactor)
+
         }
     }
 
