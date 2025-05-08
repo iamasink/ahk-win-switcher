@@ -110,20 +110,18 @@ f10:: {
     ; DllCall("SetCursorPos", "Int", jpos, "Int", jpos2)
 
     ; animate mouse pos using dll call
-        ; Smoothly animate mouse movement to the center of the window
-        MouseGetPos(&mousex, &mousey)
-        steps := 50
-        stepX := (jpos - mousex) / steps
-        stepY := (jpos2 - mousey) / steps
-    
-        Loop steps {
-            DllCall("SetCursorPos", "Int", mousex += stepX, "Int", mousey += stepY)
-            Sleep(2)
-        }
-        ; Ensure the mouse ends up exactly at the center
-        DllCall("SetCursorPos", "Int", jpos, "Int", jpos2)
-    
-    
+    ; Smoothly animate mouse movement to the center of the window
+    MouseGetPos(&mousex, &mousey)
+    steps := 50
+    stepX := (jpos - mousex) / steps
+    stepY := (jpos2 - mousey) / steps
+
+    loop steps {
+        DllCall("SetCursorPos", "Int", mousex += stepX, "Int", mousey += stepY)
+        Sleep(2)
+    }
+    ; Ensure the mouse ends up exactly at the center
+    DllCall("SetCursorPos", "Int", jpos, "Int", jpos2)
 
 
     ; MsgBox("Window Handle: " win "`n"
@@ -284,6 +282,10 @@ AltDownLoop() {
     MoveMouseToWindowCenter(win)
 }
 
+*w:: {
+    CloseWindowAndUpdate(windows[selectedIndex].hwnd)
+}
+
 MoveMouseToWindowCenter(hwnd) {
 
     ; with mouse positions, its different to thumbnail stuff, override scaling to 100%
@@ -302,17 +304,17 @@ MoveMouseToWindowCenter(hwnd) {
 
 ; improved MouseMove() function
 BetterMouseMove(x, y, steps := 50, sleepTime := 2) {
-        ; Smoothly animate mouse movement to the position
-        MouseGetPos(&mousex, &mousey)
-        stepX := (x - mousex) / steps
-        stepY := (y - mousey) / steps
-    
-        Loop steps {
-            DllCall("SetCursorPos", "Int", mousex += stepX, "Int", mousey += stepY)
-            Sleep(sleepTime)
-        }
-        ; Ensure the mouse ends up exactly at the center
-        DllCall("SetCursorPos", "Int", x, "Int", y)
+    ; Smoothly animate mouse movement to the position
+    MouseGetPos(&mousex, &mousey)
+    stepX := (x - mousex) / steps
+    stepY := (y - mousey) / steps
+
+    loop steps {
+        DllCall("SetCursorPos", "Int", mousex += stepX, "Int", mousey += stepY)
+        Sleep(sleepTime)
+    }
+    ; Ensure the mouse ends up exactly at the center
+    DllCall("SetCursorPos", "Int", x, "Int", y)
 
 }
 
@@ -463,7 +465,7 @@ ShowSwitcher(onMonitor := MonitorGetPrimary()) {
             switcherGui.Opt("-Caption +ToolWindow +Resize -DPIScale")
 
             switcherGuiTexts := []
-            switcherGui.AddText("y0 x10 c" textColour, "Monitor: " (selectedMonitor ? selectedMonitor : "idk"))
+            switcherGui.AddText("y0 x10 c" textColour, "Monitor: " (selectedMonitor ? selectedMonitor : 0))
 
             y := 30
             ydiff := 400
@@ -626,8 +628,14 @@ TextMiddleClick(ctl, index, text, *) {
     global selectedIndex, altDown
 
     ; close the window
+    CloseWindowAndUpdate(windows[index].hwnd)
+}
+
+CloseWindowAndUpdate(hwnd) {
+    global windows, selectedIndex, lastIndex
+    ; close the window
     try {
-        WinClose("ahk_id " windows[index].hwnd)
+        WinClose("ahk_id " hwnd)
     }
     BuildWindowList()
     if (selectedIndex > windows.Length) {
@@ -715,6 +723,9 @@ FocusWindow(hwnd) {
         return false
 
     WinActivate("ahk_id " hwnd)
+    Sleep(10)
+    ; activate with dll
+    DllCall("SetForegroundWindow", "Ptr", hwnd)
 
     return true
 }
@@ -776,7 +787,6 @@ GetWindowNormalPos(hwnd, scalingFactorOverride := 0) {
             top: Floor((y) * scalingFactor),
             width: Floor((w) * scalingFactor),
             height: Floor((h) * scalingFactor)
-
         }
     }
 
