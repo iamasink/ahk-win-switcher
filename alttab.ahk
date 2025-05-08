@@ -57,6 +57,9 @@ global selectedMonitor := 0
 ; prevent weird race conditions when updating the gui, especially when creating thumbnails
 global guiUpdateLock := false
 
+ProcessSetPriority("H")
+
+
 ;
 
 f12:: {
@@ -177,6 +180,8 @@ AltDownLoop() {
     tabPressed := true
     HandleTilde(-1)
 }
+
+#HotIf altDown && tabPressed
 
 *1:: HandleNumber(1)
 *2:: HandleNumber(2)
