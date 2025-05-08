@@ -23,6 +23,9 @@ global useThumbnails := true
 ; if its too low, weird stuff happens.
 global switcherDelay := 50
 
+; 0= auto, otherwise monitor index
+; global displayOnMonitor := 2 ; currently not used
+
 ; if not admin, start as admin
 ; taken from https://www.autohotkey.com/boards/viewtopic.php?p=523250#p523250
 
@@ -174,7 +177,7 @@ AltDownLoop() {
             if (altPressTime + switcherDelay < A_TickCount) {
                 if (!switcherShown) {
                     if (windows.Length > 0) {
-                        ShowSwitcher(GetMouseMonitor())
+                        ShowSwitcher()
                         ChangeGuiSelectedText(selectedIndex, lastIndex)
                     } else {
                         ToolTip("no windows...")
