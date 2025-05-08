@@ -16,6 +16,9 @@ global selectedColour := "ff8aec"
 global runAsAdmin := false
 ; true = show thumbnails, horizonal layout, false = no thumbnails, vertical layout
 global useThumbnails := true
+; delay before showing the switcher, in ms
+; if its too low, weird stuff happens.
+global switcherDelay := 50
 
 ; if not admin, start as admin
 ; taken from https://www.autohotkey.com/boards/viewtopic.php?p=523250#p523250
@@ -50,7 +53,7 @@ global switcherGuiLogos := []
 global selectedIndex := 1
 global lastIndex := 2
 global iconCache := Map()
-global showMonitor := 0
+global selectedMonitor := 0
 ; prevent weird race conditions when updating the gui, especially when creating thumbnails
 global guiUpdateLock := false
 
@@ -58,11 +61,6 @@ global guiUpdateLock := false
 
 f12:: {
     ExitApp
-}
-
-f11:: {
-    BuildWindowList()
-    ShowSwitcher()
 }
 
 ; if alt tab tapped, just change switcher
@@ -85,16 +83,20 @@ f11:: {
 }
 
 AltDownLoop() {
-    global altDown, altPressTime, showGUI, tabPressed, switcherShown, selectedIndex, lastIndex, windows, showMonitor
+    global altDown, altPressTime, showGUI, tabPressed, switcherShown, selectedIndex, lastIndex, windows, selectedMonitor, switcherDelay
     ; tooltip("alt down`n" tabPressed "`n" selectedIndex "`n" lastIndex "`n" windows.Length "`n" showMonitor)
     ; tabtext := tabPressed ? "tab pressed" : "no tab pressed"
     ; ToolTip("Alt is being held down.`nTab Status: " tabtext "`nSelected Index: " selectedIndex "`nLast Index: " lastIndex "`nNumber of Windows: " windows.Length "`nMonitor: " showMonitor "`nAlt Press Time: " altPressTime, , , 2)
     if (altDown) {
         if (tabPressed) {
             if (windows.Length = 0) {
-                BuildWindowList(showMonitor ? showMonitor : GetMouseMonitor())
+                if (!selectedMonitor) {
+                    activewin := WinActive("A")
+                    selectedMonitor := GetWindowMonitor(activewin)
+                }
+                BuildWindowList(selectedMonitor ? selectedMonitor : GetMouseMonitor())
             }
-            if (altPressTime + 150 < A_TickCount) {
+            if (altPressTime + switcherDelay < A_TickCount) {
                 if (!switcherShown) {
                     if (windows.Length > 0) {
                         ShowSwitcher(GetMouseMonitor())
@@ -128,6 +130,7 @@ AltDownLoop() {
             windows := []
             selectedIndex := 1
             lastIndex := 1
+            selectedMonitor := 0
         } else {
             ; ToolTip("no tab", , , 10)
         }
@@ -148,7 +151,7 @@ AltDownLoop() {
 }
 
 *`:: {
-    global showMonitor, selectedIndex, tabPressed
+    global selectedMonitor, selectedIndex, tabPressed
     tabPressed := true
 
     ; showMonitor += 1
@@ -170,7 +173,7 @@ AltDownLoop() {
 }
 
 +`:: {
-    global showMonitor, selectedIndex, tabPressed
+    global selectedMonitor, selectedIndex, tabPressed
     tabPressed := true
     HandleTilde(-1)
 }
@@ -212,18 +215,20 @@ HandleTab(change) {
 }
 
 HandleTilde(change) {
-    global showMonitor, selectedIndex, tabPressed, lastIndex
-    showMonitor += change
+    global selectedMonitor, selectedIndex, tabPressed, lastIndex
+    selectedMonitor += change
     monitorCount := MonitorGetCount()
-    if showMonitor > monitorCount {
-        showMonitor := 1
+    if selectedMonitor > monitorCount {
+        selectedMonitor := 1
     }
-    if showMonitor < 1 {
-        showMonitor := monitorCount
+    if selectedMonitor < 1 {
+        selectedMonitor := monitorCount
     }
+
+
     ; ToolTip("change: " change "`n" showMonitor)
     switcherShown := true
-    BuildWindowList(showMonitor)
+    BuildWindowList(selectedMonitor)
     ShowSwitcher()
     lastIndex := selectedIndex
     selectedIndex := 1
@@ -233,7 +238,7 @@ HandleTilde(change) {
 }
 
 HandleNumber(num) {
-    global showMonitor, selectedIndex, lastIndex, tabPressed, windows
+    global selectedMonitor, selectedIndex, lastIndex, tabPressed, windows
     if (num > 0 && num < windows.Length) {
         ChangeSelectedIndex(num)
         ; selectedIndex := num
@@ -321,7 +326,7 @@ ShowSwitcher(onMonitor := MonitorGetPrimary()) {
 
     guiUpdateLock := true
     try {
-        global switcherGui, windows, selectedIndex, switcherGuiTexts, switcherShown, showMonitor, backgroundColour, textColour, useThumbnails
+        global switcherGui, windows, selectedIndex, switcherGuiTexts, switcherShown, selectedMonitor, backgroundColour, textColour, useThumbnails
         if (useThumbnails) {
             try {
                 HideSwitcher()
@@ -333,7 +338,7 @@ ShowSwitcher(onMonitor := MonitorGetPrimary()) {
             switcherGui.Opt("-Caption +ToolWindow +Resize -DPIScale")
 
             switcherGuiTexts := []
-            switcherGui.AddText("y0 x10 c" textColour, "Monitor: " (showMonitor ? showMonitor : GetMouseMonitor()))
+            switcherGui.AddText("y0 x10 c" textColour, "Monitor: " (selectedMonitor ? selectedMonitor : "idk"))
 
             y := 30
             ydiff := 400
@@ -396,20 +401,25 @@ ShowSwitcher(onMonitor := MonitorGetPrimary()) {
             switcherGui.Opt("+AlwaysOnTop -Caption +ToolWindow +Resize -DPIScale")
             ; ensure all other guis are removed
             ; then make it big and centered
+            ; AddAcryllicEffect(switcherGui.hwnd)
             switcherGui.Show("w" w " h" h "x" monitorinfo.x - (w / 2) " y" monitorinfo.y - (h / 2))
+            ; make transparent
+            ; WinSetTransColor(backgroundColour, "ahk_id " switcherGui.hwnd)
+
+
             switcherShown := true
+        }
+        else {
+            try {
+                HideSwitcher()
             }
-            else {
-                try {
-                    HideSwitcher()
-                }
-                switcherGui := Gui("")
-                switcherGui.BackColor := backgroundColour
-                ; WinSetTransColor("000000", "ahk_id " switcherGui.hwnd)
-                ; WinSetRegion("W100 H100")
-                switcherGui.Opt("-Caption +ToolWindow +Resize -DPIScale")
-                switcherGuiTexts := []
-                switcherGui.AddText("y0 x10 c" textColour, "Monitor: " (showMonitor ? showMonitor : GetMouseMonitor()))
+            switcherGui := Gui("")
+            switcherGui.BackColor := backgroundColour
+            ; WinSetTransColor("000000", "ahk_id " switcherGui.hwnd)
+            ; WinSetRegion("W100 H100")
+            switcherGui.Opt("-Caption +ToolWindow +Resize -DPIScale")
+            switcherGuiTexts := []
+            switcherGui.AddText("y0 x10 c" textColour, "Monitor: " (selectedMonitor ? selectedMonitor : GetMouseMonitor()))
 
             y := 30
             ydiff := 40
@@ -430,14 +440,42 @@ ShowSwitcher(onMonitor := MonitorGetPrimary()) {
             switcherGui.Opt("+AlwaysOnTop -Caption +ToolWindow +Resize -DPIScale")
             ; ensure all other guis are removed
             ; then make it big and centered
+            ; AddAcryllicEffect(switcherGui.hwnd)
             switcherGui.Show("w" w " h" h " x" monitorinfo.x - (500 / 2) " y" monitorinfo.y - (500 / 2))
             switcherShown := true
-            }
+        }
 
     }
     finally {
         guiUpdateLock := false
     }
+}
+
+AddAcryllicEffect(hwnd) {
+    static DWMWA_SYSTEMBACKDROP_TYPE := 38
+    static DWMSBT_AUTO := 0
+    static DWMSBT_NONE := 1
+    static DWMSBT_MAINWINDOW := 2
+    static DWMSBT_TRANSIENTWINDOW := 3
+    static DWMSBT_TABBEDWINDOW := 4
+
+
+    ; set acrylic effect
+    DllCall("dwmapi\DwmSetWindowAttribute", "Ptr", hwnd, "Int", DWMWA_SYSTEMBACKDROP_TYPE, "Int*", DWMSBT_TRANSIENTWINDOW, "Int", 4)
+
+
+    ; Extend frame into client area
+    ; margins := Buffer(16)
+    ; NumPut("Int", -1, margins, 0)  ; All margins
+    ; NumPut("Int", -1, margins, 4)
+    ; NumPut("Int", -1, margins, 8)
+    ; NumPut("Int", -1, margins, 12)
+    ; DllCall("dwmapi\DwmExtendFrameIntoClientArea", "Ptr", hwnd, "Ptr", margins.Ptr)
+
+    ; dark mode
+    static DWMWA_USE_IMMERSIVE_DARK_MODE := 20
+    DllCall("dwmapi\DwmSetWindowAttribute", "Ptr", hwnd, "Int", DWMWA_USE_IMMERSIVE_DARK_MODE, "Int*", 1, "Int", 4)
+
 }
 
 TextClick(ctl, index, text, idk) {
@@ -463,7 +501,9 @@ TextMiddleClick(ctl, index, text, *) {
     global selectedIndex, altDown
 
     ; close the window
-    WinClose("ahk_id " windows[index].hwnd)
+    try {
+        WinClose("ahk_id " windows[index].hwnd)
+    }
     BuildWindowList()
     if (selectedIndex > windows.Length) {
         selectedIndex := windows.Length
@@ -564,6 +604,16 @@ GetMonitorAt(X, Y) {
         }
     }
     return 1
+}
+
+GetWindowMonitor(hwnd) {
+    winpos := GetWindowNormalPos(hwnd)
+    centerX := winpos.left + (winpos.width // 2)
+    centerY := winpos.top + (winpos.height // 2)
+
+
+    winMon := GetMonitorAt(centerX, centerY)
+    return winMon
 }
 
 GetMonitorCenter(monitorNum) {
