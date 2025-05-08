@@ -21,7 +21,7 @@ global runAsAdmin := !debug
 global useThumbnails := true
 ; delay before showing the switcher, in ms
 ; if its too low, weird stuff happens.
-global switcherDelay := 50
+global switcherDelay := 100
 
 ; 0= auto, otherwise monitor index
 ; global displayOnMonitor := 2 ; currently not used
