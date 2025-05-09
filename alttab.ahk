@@ -5,6 +5,8 @@ CoordMode("Mouse", "Screen")
 #DllLoad 'dwmapi'
 
 InstallKeybdHook(1)
+; possibly prevent taskbar flashing
+#WinActivateForce
 
 ; main config options
 ; the background colour of the main switcher window
@@ -65,7 +67,7 @@ global selectedMonitor := 0
 ; prevent weird race conditions when updating the gui, especially when creating thumbnails
 global guiUpdateLock := false
 
-ProcessSetPriority("H")
+ProcessSetPriority("R")
 
 
 #HotIf debug
@@ -167,7 +169,7 @@ AltDownLoop() {
     ; tabtext := tabPressed ? "tab pressed" : "no tab pressed"
     ; ToolTip("Alt is being held down.`nTab Status: " tabtext "`nSelected Index: " selectedIndex "`nLast Index: " lastIndex "`nNumber of Windows: " windows.Length "`nMonitor: " showMonitor "`nAlt Press Time: " altPressTime, , , 2)
     ; altDown := GetKeyState("LAlt", "P")
-    if (GetKeyState( "LAlt", "P")) {
+    if (GetKeyState("LAlt", "P")) {
         altDown := true
     } else {
         altDown := false
@@ -185,7 +187,11 @@ AltDownLoop() {
             if (altPressTime + switcherDelay < A_TickCount) {
                 if (!switcherShown) {
                     if (windows.Length > 0) {
-                        selectedIndex := 2
+                        if (windows.Length == 1) {
+                            selectedIndex := 1
+                        } else {
+                            selectedIndex := 2
+                        }
                         ShowSwitcher()
                         ChangeGuiSelectedText(selectedIndex, lastIndex)
                     } else {
@@ -470,6 +476,7 @@ ShowSwitcher(onMonitor := MonitorGetPrimary()) {
             try {
                 HideSwitcher()
             }
+
             switcherGui := Gui("")
             switcherGui.BackColor := backgroundColour
             ; WinSetTransColor("000000", "ahk_id " switcherGui.hwnd)
@@ -670,8 +677,7 @@ ChangeSelectedIndex(index) {
 
 CreateThumbnail(windowHwnd, thumbnailHwnd, guiPosX, guiPosY, sourceW, sourceH, thumbW, thumbH) {
 
-    DllCall('dwmapi\DwmRegisterThumbnail', 'Ptr', thumbnailHwnd, 'Ptr', windowHwnd, 'Ptr*', &hThumbnailId := 0,
-        'HRESULT')
+    DllCall('dwmapi\DwmRegisterThumbnail', 'Ptr', thumbnailHwnd, 'Ptr', windowHwnd, 'Ptr*', &hThumbnailId := 0, 'HRESULT')
 
     DWM_TNP_RECTDESTINATION := 0x00000001
     DWM_TNP_RECTSOURCE := 0x00000002
@@ -738,9 +744,10 @@ FocusWindow(hwnd) {
         return false
 
     WinActivate("ahk_id " hwnd)
-    Sleep(10)
+    ; Sleep(10)
     ; activate with dll
-    DllCall("SetForegroundWindow", "Ptr", hwnd)
+    ; nvm this is not needed
+    ; DllCall("SetForegroundWindow", "Ptr", hwnd)
 
     return true
 }
