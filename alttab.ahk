@@ -12,7 +12,7 @@ global textColour := "ffffff"
 ; the colour of the selected window highlight
 global selectedColour := "ff8aec"
 
-global debug := true
+global debug := false
 
 ; required to alt tab from admin windows, eg task manager
 ; suggested true, but false can be useful for debugging
