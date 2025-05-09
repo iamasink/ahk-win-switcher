@@ -1,4 +1,4 @@
-# ahk-win-switcher
+# ahk win switcher
 
-a somewhat scuffed alternative to [simple window switcher](https://github.com/valinet/sws) using an autohotkey gui
+a somewhat scuffed alternative to [Simple Window Switcher](https://github.com/valinet/sws) using an autohotkey gui
 
