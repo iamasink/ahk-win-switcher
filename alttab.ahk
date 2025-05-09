@@ -4,6 +4,8 @@ CoordMode("Mouse", "Screen")
 
 #DllLoad 'dwmapi'
 
+InstallKeybdHook(1)
+
 ; main config options
 ; the background colour of the main switcher window
 global backgroundColour := "202020"
@@ -147,24 +149,30 @@ f10:: {
 
 *~LAlt:: {
     global altDown, altPressTime, showGUI, tabPressed
-    altDown := true
+    ; altDown := true
     showGUI := false
     tabPressed := false
 
     altPressTime := A_TickCount
+    altDown := true
 
     ; ToolTip("alt down`n " tabPressed, , , 2)
     SetTimer(AltDownLoop, -1)
-    KeyWait("LAlt")
-    altDown := false
-
 }
+
 
 AltDownLoop() {
     global altDown, altPressTime, showGUI, tabPressed, switcherShown, selectedIndex, lastIndex, windows, selectedMonitor, switcherDelay
     ; tooltip("alt down`n" tabPressed "`n" selectedIndex "`n" lastIndex "`n" windows.Length "`n" showMonitor)
     ; tabtext := tabPressed ? "tab pressed" : "no tab pressed"
     ; ToolTip("Alt is being held down.`nTab Status: " tabtext "`nSelected Index: " selectedIndex "`nLast Index: " lastIndex "`nNumber of Windows: " windows.Length "`nMonitor: " showMonitor "`nAlt Press Time: " altPressTime, , , 2)
+    ; altDown := GetKeyState("LAlt", "P")
+    if (GetKeyState( "LAlt", "P")) {
+        altDown := true
+    } else {
+        altDown := false
+    }
+
     if (altDown) {
         if (tabPressed) {
             if (windows.Length = 0) {
@@ -177,6 +185,7 @@ AltDownLoop() {
             if (altPressTime + switcherDelay < A_TickCount) {
                 if (!switcherShown) {
                     if (windows.Length > 0) {
+                        selectedIndex := 2
                         ShowSwitcher()
                         ChangeGuiSelectedText(selectedIndex, lastIndex)
                     } else {
@@ -635,11 +644,13 @@ TextMiddleClick(ctl, index, text, *) {
 }
 
 CloseWindowAndUpdate(hwnd) {
-    global windows, selectedIndex, lastIndex
+    global windows, selectedIndex, lastIndex, switcherGui
     ; close the window
     try {
         WinClose("ahk_id " hwnd)
     }
+
+
     BuildWindowList()
     if (selectedIndex > windows.Length) {
         selectedIndex := windows.Length
@@ -648,6 +659,7 @@ CloseWindowAndUpdate(hwnd) {
     }
     ShowSwitcher()
     ChangeGuiSelectedText(selectedIndex, lastIndex)
+
 }
 
 ChangeSelectedIndex(index) {
