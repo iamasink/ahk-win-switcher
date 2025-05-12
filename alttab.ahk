@@ -46,6 +46,14 @@ global SWITCHER_ITEM_MAXWIDTH := SWITCHER_ITEM_MAXHEIGHT * 2
 global SWITCHER_MAXSCREENWIDTH_PERCENTAGE := 0.8
 
 
+global OFFSET_TEXT_X := 40
+global OFFSET_TEXT_Y := 8
+global OFFSET_LOGO_X := 5
+global OFFSET_LOGO_Y := 1
+global OFFSET_THUMBNAIL_X := 0
+global OFFSET_THUMBNAIL_Y := 32 + OFFSET_LOGO_Y
+global OFFSET_BACKGROUND_X := 0
+global OFFSET_BACKGROUND_Y := 0
 
 
 
@@ -153,19 +161,21 @@ UpdateSelected(index) {
     ; }
 
     for index, hwnd in listOfWindows {
-        ; MsgBox("hwnd: " hwnd "`nindex: " index)
-
-        ; set if selected or not
-        switcherslot := switcherGuiSlots[hwnd]
-        if (index == selectedIndex) {
-            switcherslot.SetSelected(true)
-        } else {
-            switcherslot.SetSelected(false)
+        try {
+            ; MsgBox("hwnd: " hwnd "`nindex: " index)
+    
+            ; set if selected or not
+            switcherslot := switcherGuiSlots[hwnd]
+            if (index == selectedIndex) {
+                switcherslot.SetSelected(true)
+            } else {
+                switcherslot.SetSelected(false)
+            }
+    
+            ; if (index == selectedIndex +1) {
+            ;     switcherslot.Redraw()
+            ; }
         }
-
-        ; if (index == selectedIndex +1) {
-        ;     switcherslot.Redraw()
-        ; }
         
     }
 }
@@ -267,7 +277,7 @@ AltDownLoop() {
             lastIndex := 1
             selectedMonitor := 0
         } else {
-            ToolTip("no tab", , , 10)
+            ; ToolTip("no tab", , , 10)
         }
     }
 }
@@ -462,15 +472,7 @@ HandleNumber(num) {
 
 
 class windowInfo {
-    OFFSET_TEXT_X := 40
-    OFFSET_TEXT_Y := 8
-    OFFSET_LOGO_X := 5
-    OFFSET_LOGO_Y := 0
-    OFFSET_THUMBNAIL_X := 0
-    OFFSET_THUMBNAIL_Y := 32
 
-    OFFSET_BACKGROUND_X := 0
-    OFFSET_BACKGROUND_Y := 0
 
 
     hwnd := 0
@@ -514,8 +516,8 @@ class windowInfo {
             CreateThumbnail(
                 this.hwnd,
                 switcherGui.hwnd,
-                x + this.OFFSET_THUMBNAIL_X,
-                y + this.OFFSET_THUMBNAIL_Y,
+                x + OFFSET_THUMBNAIL_X,
+                y + OFFSET_THUMBNAIL_Y,
                 100,
                 100
             )
@@ -571,16 +573,16 @@ class windowInfo {
         this.y := y
         this.w := w
         this.h := h
-        this.backgroundctl.Move(x + this.OFFSET_BACKGROUND_X, y + this.OFFSET_BACKGROUND_Y, w + this.OFFSET_THUMBNAIL_X + 1, h + this.OFFSET_THUMBNAIL_Y + 1)
+        this.backgroundctl.Move(x + OFFSET_BACKGROUND_X, y + OFFSET_BACKGROUND_Y, w + OFFSET_THUMBNAIL_X + 1, h + OFFSET_THUMBNAIL_Y + 1)
         ; this.backgroundctl.Opt("Backgroundff00ff")
-        this.logoctl.Move(x + this.OFFSET_LOGO_X, y + this.OFFSET_LOGO_Y)
-        this.textctl.Move(x + this.OFFSET_TEXT_X, y + this.OFFSET_TEXT_Y, this.w - this.OFFSET_TEXT_X, 16)
+        this.logoctl.Move(x + OFFSET_LOGO_X, y + OFFSET_LOGO_Y)
+        this.textctl.Move(x + OFFSET_TEXT_X, y + OFFSET_TEXT_Y, this.w - OFFSET_TEXT_X, 16)
         this.Redraw()
 
         UpdateThumbnail(
             this.thumbnailId,
-            x + this.OFFSET_THUMBNAIL_X,
-            y + this.OFFSET_THUMBNAIL_Y,
+            x + OFFSET_THUMBNAIL_X,
+            y + OFFSET_THUMBNAIL_Y,
             w,
             h)
 
