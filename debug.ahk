@@ -462,6 +462,30 @@ f2:: {
 
 }
 
+
+f1:: {
+    hwnd := WinActive("A")
+
+    static DWMWA_EXTENDED_FRAME_BOUNDS := 9
+    rect := Buffer(16, 0)  ; RECT structure: 4 integers (4 bytes each)
+    hResult := DllCall("dwmapi\DwmGetWindowAttribute",
+        "Ptr", hwnd,
+        "UInt", DWMWA_EXTENDED_FRAME_BOUNDS,
+        "Ptr", rect,
+        "UInt", rect.Size)
+    if (hResult != 0)
+        throw OSError("DwmGetWindowAttribute failed", hResult)
+    extendedframeboundsleft := NumGet(rect, 0, "Int")
+    extendedframeboundstop := NumGet(rect, 4, "Int")
+    extendedframeboundsright := NumGet(rect, 8, "Int")
+    extendedframeboundsbottom := NumGet(rect, 12, "Int")
+
+    WinGetPos(&wingetposleft, &wingetposy, &wingetposw, &wingetposh)
+
+
+    MsgBox("extendedframebounds`n " extendedframeboundsleft ", " extendedframeboundstop ", " extendedframeboundsbottom ", " extendedframeboundsright ", `n" wingetposleft ", " wingetposy ", " wingetposw ", " wingetposh)
+}
+
 GetWindowNormalPos(hwnd) {
     static SW_SHOWNORMAL := 1, SW_SHOWMINIMIZED := 2, SW_SHOWMAXIMIZED := 3
 

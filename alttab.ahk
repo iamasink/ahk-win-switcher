@@ -37,7 +37,7 @@ global SWITCHER_DELAY := 100
 global SWITCHER_PADDING_LEFT := 10
 global SWITCHER_PADDING_TOP := 10
 
-global SWITCHER_ITEM_PADDING_WIDTH := 20
+global SWITCHER_ITEM_PADDING_WIDTH := 5
 
 global SWITCHER_ITEM_MAXHEIGHT := 250
 global SWITCHER_ITEM_MAXWIDTH := SWITCHER_ITEM_MAXHEIGHT * 2
@@ -50,7 +50,7 @@ global OFFSET_TEXT_X := 40
 global OFFSET_TEXT_Y := 8
 global OFFSET_LOGO_X := 5
 global OFFSET_LOGO_Y := 1
-global OFFSET_THUMBNAIL_X := 0
+global OFFSET_THUMBNAIL_X := 1
 global OFFSET_THUMBNAIL_Y := 32 + OFFSET_LOGO_Y
 global OFFSET_BACKGROUND_X := 0
 global OFFSET_BACKGROUND_Y := 0
@@ -691,7 +691,7 @@ UpdateControls() {
     {
         if !windowLookup.Has(hwnd)
         {
-            MsgBox("destroying. this is bad unless you closed a window")
+            if (DEBUG) MsgBox("destroying. this is bad unless you closed a window")
             wininfo.Destroy()
         }
     }
@@ -712,13 +712,29 @@ UpdateControls() {
 
         ; get the windows size for aspect ratio stuffs
         ; this could possibly be done with dwmapi\DwmQueryThumbnailSourceSize    
-        windowSize := GetWindowNormalPos(hwnd)
+
+
+        method := 1
+        if method = 0 {
+            ; this doewsnt work correctly, wrong index vs thumbnail id
+            pSize := Buffer(8, 0)
+    
+            result := DllCall('dwmapi\DwmQueryThumbnailSourceSize', 'Ptr', index, 'Ptr', pSize.Ptr, 'UInt')
+    
+    
+            sourceW := NumGet(pSize, 0, 'Int')
+            sourceH := NumGet(pSize, 4, 'Int')
+        } else {
+            windowSize := GetWindowNormalPos(hwnd)
+            sourceW := windowSize.width
+            sourceH := windowSize.height
+        }
 
     
 
         ; aspect ratio in terms of width = height * aspectratio
         ; so height = width / aspectratio
-        aspectratio := (windowSize.width / windowSize.height)
+        aspectratio := (sourceW / sourceH)
 
         ; set size based on maxheight and aspect ratio
         h := Floor(SWITCHER_ITEM_MAXHEIGHT)
@@ -737,12 +753,11 @@ UpdateControls() {
 
     
 
-        y := SWITCHER_PADDING_TOP + (row * SWITCHER_ITEM_MAXHEIGHT)
 
 
 
         ; MsgBox("hwnd: " hwnd "`nindex: " index)
-        y := SWITCHER_PADDING_TOP + (row * SWITCHER_ITEM_MAXHEIGHT)
+        y := SWITCHER_PADDING_TOP + (row * (SWITCHER_ITEM_MAXHEIGHT + OFFSET_THUMBNAIL_Y + 1) )
         x := lastx
         lastx += w + SWITCHER_ITEM_PADDING_WIDTH
         rowWidth := lastx
@@ -852,9 +867,9 @@ UpdateThumbnail(thumbNailId, guiPosX, guiPosY, thumbW, thumbH, sourceW := 0, sou
         'Int', guiPosY, ; y ''
         'Int', guiPosX + thumbW, ; x2
         'Int', guiPosY + thumbH, ; y2
-        'Int', 0, ; start x of source
+        'Int', 8, ; start x of source
         'Int', 0, ; start y of source
-        'Int', sourceW, ; x2 of source?
+        'Int', sourceW + 1, ; x2 of source?
         'Int', sourceH, ;  y2 of source?
         Properties := Buffer(45, 0)
     )
@@ -1073,27 +1088,58 @@ GetWindowNormalPos(hwnd, scalingFactorOverride := 0) {
 
     ; MsgBox("dpi: " dpi)
 
+    
+    ; if fullscreen maximized or normal
+    if (WinGetMinMax("ahk_id " hwnd) == 1 || WinGetMinMax("ahk_id " hwnd) == 0) {
+
+        ; ; old wingetpos method
+        ; title := WinGetTitle("ahk_id " hwnd)
+        ; ; the window is maximised or normal
+        ; WinGetPos(&x, &y, &w, &h, "ahk_id " hwnd)
+        
+        ; return {
+        ;     left: Floor((x) * scalingFactor),
+        ;     right: Floor((x + w) * scalingFactor),
+        ;     bottom: Floor((y + h) * scalingFactor),
+        ;     top: Floor((y) * scalingFactor),
+        ;     width: Floor((w) * scalingFactor),
+        ;     height: Floor((h) * scalingFactor)
+        ; }
+
+
+        ; new DwmGetWindowAttribute DWMWA_EXTENDED_FRAME_BOUNDS method
+
+        static DWMWA_EXTENDED_FRAME_BOUNDS := 9
+        rect := Buffer(16, 0)  ; RECT structure: 4 integers (4 bytes each)
+        hResult := DllCall("dwmapi\DwmGetWindowAttribute",
+            "Ptr", hwnd,
+            "UInt", DWMWA_EXTENDED_FRAME_BOUNDS,
+            "Ptr", rect,
+            "UInt", rect.Size)
+        if (hResult != 0)
+            throw OSError("DwmGetWindowAttribute failed", hResult)
+        extendedframeboundsleft := NumGet(rect, 0, "Int")
+        extendedframeboundstop := NumGet(rect, 4, "Int")
+        extendedframeboundsright := NumGet(rect, 8, "Int")
+        extendedframeboundsbottom := NumGet(rect, 12, "Int")
+
+        ; return {
+        ;     left: extendedframeboundsleft,
+        ;     top: extendedframeboundstop,
+        ;     bottom: extendedframeboundsbottom,
+        ;     right: extendedframeboundsright,
+        ;     width: extendedframeboundsright - extendedframeboundsleft,
+        ;     height: extendedframeboundsbottom - extendedframeboundstop 
+        ; }
+
+
+    }
+    
+    ; MsgBox("window: " WinGetTitle("ahk_id " hwnd) "`n" hwnd "`n dpi: " dpi "`n scalingFactor: " scalingFactor)
+    
     ; Initialize WINDOWPLACEMENT structure
     wp := Buffer(44, 0)                   ; Size of WINDOWPLACEMENT struct
     NumPut("UInt", 44, wp, 0)             ; Set cbSize (structure size)
-
-    if (WinGetMinMax("ahk_id " hwnd) == 1 || WinGetMinMax("ahk_id " hwnd) == 0) {
-        title := WinGetTitle("ahk_id " hwnd)
-        ; the window is maximised or normal
-        WinGetPos(&x, &y, &w, &h, "ahk_id " hwnd)
-
-        return {
-            left: Floor((x) * scalingFactor),
-            right: Floor((x + w) * scalingFactor),
-            bottom: Floor((y + h) * scalingFactor),
-            top: Floor((y) * scalingFactor),
-            width: Floor((w) * scalingFactor),
-            height: Floor((h) * scalingFactor)
-        }
-    }
-
-    ; MsgBox("window: " WinGetTitle("ahk_id " hwnd) "`n" hwnd "`n dpi: " dpi "`n scalingFactor: " scalingFactor)
-
     if DllCall("GetWindowPlacement", "Ptr", hwnd, "Ptr", wp) {
         ; Extract values from structure
         showCmd := NumGet(wp, 8, "UInt")  ; showCmd at offset 8
