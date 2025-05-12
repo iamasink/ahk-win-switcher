@@ -105,7 +105,7 @@ ProcessSetPriority("R")
 switcherGui := Gui()
 switcherGui.BackColor := BACKGROUND_COLOUR
 switcherGui.Opt("-Caption +ToolWindow +Resize -DPIScale")
-switcherGui.Opt("+AlwaysOnTop")
+switcherGui.Opt("+AlwaysOnTop ")
 ; maybe reduce flickering
 ; switcherGui.Opt("+0x02000000") ; WS_EX_COMPOSITED & 
 ; switcherGui.Opt("+0x00080000") ; WS_EX_LAYERED 
@@ -123,7 +123,6 @@ f11:: {
     BuildWindowList(selectedMonitor)
     UpdateControls()
     ShowSwitcher()
-    MsgBox("hi")
 } 
 
 f12:: {
@@ -136,13 +135,13 @@ f10:: {
     ; switcherGuiSlots[1].text.GetPos(&x, &y, &w, &h)
     ; switcherGuiSlots[1].text.Move(x, y, w * 2,)
     ; Peep(switcherGuiSlots[1])
-    BuildWindowList(selectedMonitor)
+    BuildWindowList(1)
 
 
     UpdateControls()
 }
 
-UpdateSelected(index) {
+UpdateSelected() {
     global listOfWindows, switcherGuiSlots, selectedIndex, lastIndex, switcherShown
 
     ; find the hwnd in switcherGuiSlots
@@ -195,19 +194,6 @@ GetHWNDFromIndex(index) {
 
 
 
-f3:: {
-    global selectedIndex
-    selectedIndex += 1
-    UpdateSelected(selectedIndex)
-
-}
-f4:: {
-    global selectedIndex
-    selectedIndex -= 1
-    UpdateSelected(selectedIndex)
-
-}
-
 
 
 
@@ -244,11 +230,12 @@ AltDownLoop() {
     if (altDown) {
         if (tabPressed) {
             ; update the window list
-            BuildWindowList()
+            BuildWindowList(selectedMonitor)
             if (altPressTime + SWITCHER_DELAY < A_TickCount) {
                 if (!switcherShown) {
                     UpdateControls()
-                    UpdateSelected(selectedIndex)
+                    ; UpdateSelected(selectedIndex)
+                    ChangeSelectedIndex(selectedIndex)
                     ShowSwitcher()
                 }
             } else {
@@ -296,6 +283,14 @@ AltDownLoop() {
     ; UpdateControls()
     ChangeSelectedIndexBy(-1)
 }
+
+*o:: {
+        global tabPressed
+    tabPressed := true
+    ; UpdateControls()
+    ChangeSelectedIndexBy(1)
+}
+
 ChangeSelectedIndexBy(change) {
     global selectedIndex
     selectedIndex += change
@@ -305,13 +300,14 @@ ChangeSelectedIndexBy(change) {
         selectedIndex := listOfWindows.Length
     }
 
-    BuildWindowList()
+    BuildWindowList(selectedMonitor)
     ; dont run this if the switcher isn't shown! or it will try do it twice on first alt+tab
     if (switcherShown) {
         ; update the controls for removed windows, resized windows etc.
         UpdateControls()
     }
-    UpdateSelected(selectedIndex)
+    UpdateSelected()
+    ; switcherGui.Show()
 }
 
 *`:: {
@@ -383,7 +379,7 @@ CloseWindowAndUpdate(hwnd) {
     }
 
 
-    BuildWindowList()
+    BuildWindowList(selectedMonitor)
     if (selectedIndex > listOfWindows.Length) {
         ChangeSelectedIndex(listOfWindows.Length)
     } else if (selectedIndex < 1) {
@@ -393,7 +389,7 @@ CloseWindowAndUpdate(hwnd) {
     ; update controls cuz therell be a gap
     UpdateControls()
     ; update the now selected control
-    UpdateSelected(selectedIndex)
+    UpdateSelected()
 
 
 
@@ -436,7 +432,7 @@ BetterMouseMove(x, y, steps := 50, sleepTime := 2) {
 #HotIf
 
 HandleTilde(change) {
-    global selectedMonitor, selectedIndex, tabPressed, lastIndex
+    global selectedMonitor, selectedIndex
     selectedMonitor += change
     monitorCount := MonitorGetCount()
     if selectedMonitor > monitorCount {
@@ -446,16 +442,42 @@ HandleTilde(change) {
         selectedMonitor := monitorCount
     }
 
-
-    ; ToolTip("change: " change "`n" showMonitor)
+        selectedIndex += change
+    if (selectedIndex > listOfWindows.Length) {
+        selectedIndex := 1
+    } else if (selectedIndex < 1) {
+        selectedIndex := listOfWindows.Length
+    }
+    
+    
+    ; ToolTip("change: " change "`n" selectedMonitor "`n" tabPressed "`n" )
     BuildWindowList(selectedMonitor)
     ChangeSelectedIndex(1)
-
     
-    ; ShowSwitcher()
-    if (!switcherShown) {
-        ShowSwitcher()
+    if (switcherShown) {
+        UpdateControls()
     }
+    
+    ; UpdateSelected()
+
+    ; ChangeSelectedIndexBy(1)
+    ; ChangeSelectedIndexBy(-1)
+    
+ 
+
+    ; BuildWindowList(selectedMonitor)
+    ; dont run this if the switcher isn't shown! or it will try do it twice on first alt+tab
+    if (switcherShown) {
+        ; update the controls for removed windows, resized windows etc.
+        UpdateControls()
+    }
+    ; UpdateSelected()
+    ; switcherGui.Show()
+    
+
+    UpdateSelected()
+
+
 }
 
 HandleNumber(num) {
@@ -644,15 +666,19 @@ class windowInfo {
         ; MsgBox("destroying thumbnail " this.thumbnailId "`nif you didnt close a window, you might've done something bad. ")
 
         ; sometimes this errors, sometimes its needed. dunno
+
+        ; UpdateThumbnail(this.thumbnailId,0,0,0,0,0,0)
         try {
-            result := DllCall('dwmapi\DwmUnregisterThumbnail', 'Ptr', this.thumbnailId, 'HRESULT')
         }
-
-
+        
+        
         this.backgroundctl.Visible := false
         this.logoctl.Visible := false
         this.textctl.Visible := false
         ; this.Redraw()
+        try {
+            DllCall('dwmapi\DwmUnregisterThumbnail', 'Ptr', this.thumbnailId, 'HRESULT')
+        }
         switcherGuiSlots.Delete(this.hwnd)
     }
 }
@@ -687,17 +713,21 @@ UpdateControls() {
     for index, hwnd in listOfWindows
         windowLookup[ hwnd ] := true
 
+    ; Peep(windowLookup)
+    ; Peep(switcherGuiSlots)
+
+    ; sometimes this doesnt function correctly. IDK
     for hwnd, wininfo in switcherGuiSlots
     {
         if !windowLookup.Has(hwnd)
         {
-            if (DEBUG) MsgBox("destroying. this is bad unless you closed a window")
+            ; if (DEBUG) MsgBox("destroying. this is bad unless you closed a window")
             wininfo.Destroy()
         }
     }
 
 
-
+    ; Peep(windowLookup)
 
 
 
@@ -781,6 +811,7 @@ UpdateControls() {
         }
 
     }
+
 }
 
 CreateOrUpdateControl(hwnd, x, y, w, h) {
@@ -804,6 +835,13 @@ CreateOrUpdateControl(hwnd, x, y, w, h) {
     } else {
         ; msgbox("creating " hwnd)
         mywindowInfo := windowInfo(hwnd, x, y, w, h)
+        mywindowInfo.SetPos(x,y,w,h)
+    }
+}
+
+RedrawAll() {
+    for hwnd in switcherGuiSlots {
+        switcherGuiSlots[hwnd].Redraw()
     }
 }
 
@@ -894,6 +932,10 @@ GetThumbnailSize(thumbnailId) {
 
 
 BuildWindowList(monitorNum := MonitorGetPrimary()) {
+    if (monitorNum = 0) {
+        monitorNum := MonitorGetPrimary()
+    }
+
     global listOfWindows
     listOfWindows := []
     DetectHiddenWindows(false)
@@ -984,6 +1026,7 @@ ShowSwitcher() {
     ; switcherGui.Show("x10000 y10000 w" w " h" h)
     ; Sleep(100)
 
+    switcherGui.AddText(,"monitor: " selectedMonitor)
     switcherGui.Show("w" w " h" h " x" x " y" y)
     ; switcherGui.Opt()
 
