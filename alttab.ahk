@@ -32,6 +32,8 @@ global USE_THUMBNAILS := true
 ; if its too low, weird stuff happens. 
 ; TODO: is this still an issue?
 global SWITCHER_DELAY := 100
+; how often the open switcher will update passively, in ms
+global UPDATE_SPEED := 500
 
 
 global SWITCHER_PADDING_LEFT := 10
@@ -203,12 +205,13 @@ GetHWNDFromIndex(index) {
 
 #HotIf 
 *~LAlt:: {
-    global altDown, altPressTime, showGUI, tabPressed
+    global altDown, altPressTime, showGUI, tabPressed, lastupdate
     ; altDown := true
     showGUI := false
     tabPressed := false
 
     altPressTime := A_TickCount
+    lastupdate := altPressTime
     altDown := true
 
     ; ToolTip("alt down`n " tabPressed, , , 2)
@@ -216,7 +219,7 @@ GetHWNDFromIndex(index) {
 }
 
 AltDownLoop() {
-    global altDown, altPressTime, showGUI, tabPressed, switcherShown, selectedIndex, lastIndex, listOfWindows, selectedMonitor, SWITCHER_DELAY
+    global altDown, altPressTime, showGUI, tabPressed, switcherShown, selectedIndex, lastIndex, listOfWindows, selectedMonitor, SWITCHER_DELAY, lastupdate
     ; tooltip("alt down`n" tabPressed "`n" selectedIndex "`n" lastIndex "`n" windows.Length "`n" showMonitor)
     ; tabtext := tabPressed ? "tab pressed" : "no tab pressed"
     ; ToolTip("Alt is being held down.`nTab Status: " tabtext "`nSelected Index: " selectedIndex "`nLast Index: " lastIndex "`nNumber of Windows: " windows.Length "`nMonitor: " showMonitor "`nAlt Press Time: " altPressTime, , , 2)
@@ -226,6 +229,7 @@ AltDownLoop() {
     } else {
         altDown := false
     }
+
 
     if (altDown) {
         if (tabPressed) {
@@ -237,6 +241,13 @@ AltDownLoop() {
                     ; UpdateSelected(selectedIndex)
                     ChangeSelectedIndex(selectedIndex)
                     ShowSwitcher()
+                } else {
+                    ;periodically update switcher
+                    if ( A_TickCount - lastupdate > UPDATE_SPEED) {
+                        UpdateControls()
+                        ; ToolTip("hi")
+                        lastupdate := A_TickCount
+                    } 
                 }
             } else {
             }
