@@ -1051,27 +1051,43 @@ ShowSwitcher() {
     guiUpdateLock := false
 }
 
-TextClick(ctl, index, text, idk) {
+TextClick(ctl:='', index:=1, text:='', idk:='', ctl2:=0) {
     global selectedIndex, altDown, listOfWindows, lastIndex, tabPressed
-    ; MsgBox("hi " index)
+    ; MsgBox("hi " ctl2.hwnd)
+    
     ; HideSwitcher()
     ; set the index then act as if alt was released
     ; selectedIndex := index
     ChangeSelectedIndex(index)
     tabPressed := false
-    ; altDown := false
+    altDown := false
     HideSwitcher()
+    selectedIndex := 2
     if (listOfWindows.Length > 0) {
-        FocusWindow(listOfWindows[selectedIndex])
+        FocusWindow(ctl2.hwnd)
+    } else {
+        MsgBox("Bad")
     }
-    listOfWindows := []
-    selectedIndex := 1
-    lastIndex := 1
-    ; FocusWindow(windows[index].hwnd)
 }
 
-TextMiddleClick(ctl, index, text, *) {
+TextMiddleClick(ctl, index, text, idk:="", ctl2:=0,*) {
     global selectedIndex, altDown
+    ; close window from hwnd
+    ; WinClose("ahk_id " ctl2.hwnd)
+
+    ; ; we could destroy the control here, but some windows won't close from just one winclose, so its a bit slower but more reliable visual feedback
+    ; ; update selected index, should it be now invalid
+    ; if (selectedIndex > listOfWindows.Length) {
+    ;     selectedIndex := listOfWindows.Length
+    ; } else if (selectedIndex < 1) {
+    ;     selectedIndex := 1
+    ; }
+
+    ; UpdateControls()
+
+    CloseWindowAndUpdate(ctl2.hwnd)
+
+
 
     ; TODO: close window and update list
 }
