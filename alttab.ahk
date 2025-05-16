@@ -11,6 +11,7 @@ InstallKeybdHook(1)
 ; possibly prevent taskbar flashing on win activate
 #WinActivateForce
 
+
 ; main config options
 ; the background colour of the main switcher window
 global BACKGROUND_COLOUR := "202020"
@@ -21,7 +22,7 @@ global TEXT_COLOUR := "ffffff"
 
 global SELECTED_TEXT_COLOUR := "101010"
 
-global DEBUG := true
+global DEBUG := false
 
 ; required to alt tab from admin windows, eg task manager
 ; suggested true, but false can be useful for debugging
@@ -35,8 +36,9 @@ global SWITCHER_DELAY := 100
 ; how often the open switcher will update passively, in ms
 global UPDATE_SPEED := 500
 
-global ALT_CHECK_DELAY := 10
-
+; how often to run the alt loop.
+; note this doesnt affect how fast alt+tab works, only the visuals
+global ALT_CHECK_DELAY := 1
 
 
 global SWITCHER_PADDING_LEFT := 10
@@ -60,7 +62,7 @@ global OFFSET_THUMBNAIL_Y := 32 + OFFSET_LOGO_Y
 global OFFSET_BACKGROUND_X := 0
 global OFFSET_BACKGROUND_Y := 0
 
-; alt q
+; alt e
 global ENABLE_MOUSEMOVE_KEYBIND := true
 
 
@@ -87,6 +89,17 @@ if (RUN_AS_ADMIN && !A_IsAdmin) {
     }
 }
 
+WriteLog(msg) {
+    if (!DEBUG)
+        return
+    try {
+        now := A_Now
+        FileAppend(now " - " A_TickCount ": " msg "`n", "log.txt",)
+    }
+}
+
+WriteLog("Script Started!")
+
 global altDown := false
 global tabPressed := false
 global altPressTime := 0
@@ -111,8 +124,7 @@ ProcessSetPriority("R")
 ; setup the gui
 switcherGui := Gui()
 switcherGui.BackColor := BACKGROUND_COLOUR
-switcherGui.Opt("-Caption +ToolWindow +Resize -DPIScale")
-switcherGui.Opt("+AlwaysOnTop ")
+switcherGui.Opt("-Caption +ToolWindow +Resize -MaximizeBox -DPIScale -LastFound -SysMenu ")
 ; maybe reduce flickering
 ; switcherGui.Opt("+0x02000000") ; WS_EX_COMPOSITED &
 ; switcherGui.Opt("+0x00080000") ; WS_EX_LAYERED
@@ -123,33 +135,10 @@ BuildWindowList()
 UpdateControls()
 
 
-f11:: {
-    global selectedMonitor
-    selectedMonitor := GetMouseMonitor()
-    ; MsgBox("monitor: " selectedMonitor)
-    BuildWindowList(selectedMonitor)
-    UpdateControls()
-    ShowSwitcher()
-}
-
-f12:: {
-    HideSwitcher()
-}
-f10:: {
-    ; change the text for a window with current ms
-
-    ; switcherGuiSlots[1].text.Text := "test" A_ScriptName " " A_TickCount
-    ; switcherGuiSlots[1].text.GetPos(&x, &y, &w, &h)
-    ; switcherGuiSlots[1].text.Move(x, y, w * 2,)
-    ; Peep(switcherGuiSlots[1])
-    BuildWindowList(1)
-
-
-    UpdateControls()
-}
-
 UpdateSelected() {
     global listOfWindows, switcherGuiSlots, selectedIndex, lastIndex, switcherShown
+    WriteLog("UpdateSelected - SelectedIndex: " selectedIndex " LastIndex: " lastIndex)
+    WriteLog("Window list length: " listOfWindows.Length)
 
     ; find the hwnd in switcherGuiSlots
 
@@ -209,10 +198,90 @@ GetHWNDFromIndex(index) {
 
     altPressTime := A_TickCount
     lastupdate := altPressTime
-    altDown := true
+    if (!altDown) {
+        ; using keywait seems to cause the default alt+tab menu to trigger on occasion, instead do this
+        altDown := true
+        WriteLog("alt down3")
+    }
+    WriteLog("alt down2")
 
     ; ToolTip("alt down`n " tabPressed, , , 2)
-    SetTimer(AltDownLoop, -1)
+
+}
+
+*~LAlt Up:: {
+    global altDown, altPressTime, showGUI, tabPressed, lastupdate
+
+    altDown := false
+
+    ; ToolTip("alt down`n " tabPressed, , , 2)
+    WriteLog("alt released")
+
+    ; when alt released
+    if (tabPressed) {
+        WriteLog("alt released and tab pressed so doing the relevant logic")
+        ; (runs once)
+        HideSwitcher()
+        
+        ; tempwindowstring := ""
+        ; for index, w in windows {
+        ;     tempwindowstring := tempwindowstring w.title "`n"
+        ; }
+        ; ToolTip("focus index " selectedIndex "`n windows: " tempwindowstring)
+
+        hwnd := GetHWNDFromIndex(selectedIndex)
+        if (hwnd != -1) {
+            FocusWindow(hwnd)
+        } else {
+            MsgBox("no hwnd",)
+        }
+        ChangeSelectedIndex(1)
+        selectedMonitor := 0
+        altDown := false
+        HideSwitcher()
+
+    } else {
+        ; ToolTip("no tab", , , 10)
+    }
+}
+
+*!Tab:: {
+    WriteLog("alt+tab one")
+    global tabPressed
+    tabPressed := true
+    ; UpdateControls()
+    ; SetTimer(AltDownLoop, -1)
+    ChangeSelectedIndexBy(1)
+    ; we can't have a delay of SWITCHER_DELAY here, because if alt+tab is continuously pressed, the timer will keep resetting.
+    SetTimer(AltDownLoop,-1)
+}
+
+*!+Tab::{
+    WriteLog("alt+shift+tab one")
+    global tabPressed
+    tabPressed := true
+    ; UpdateControls()
+    ; SetTimer(AltDownLoop, -1)
+    ChangeSelectedIndexBy(-1)
+    ; we can't have a delay of SWITCHER_DELAY here, because if alt+tab is continuously pressed, the timer will keep resetting.
+    SetTimer(AltDownLoop,-1)
+}
+
+*!`:: {
+    global selectedMonitor, selectedIndex, tabPressed
+    tabPressed := true
+
+    HandleTilde(1)
+    SetTimer(AltDownLoop,-1)
+
+}
+
+*!+`:: {
+    global selectedMonitor, selectedIndex, tabPressed
+    tabPressed := true
+    HandleTilde(-1)
+    SetTimer(AltDownLoop,-1)
+
 }
 
 AltDownLoop() {
@@ -221,19 +290,18 @@ AltDownLoop() {
     ; tabtext := tabPressed ? "tab pressed" : "no tab pressed"
     ; ToolTip("Alt is being held down.`nTab Status: " tabtext "`nSelected Index: " selectedIndex "`nLast Index: " lastIndex "`nNumber of Windows: " windows.Length "`nMonitor: " showMonitor "`nAlt Press Time: " altPressTime, , , 2)
     ; altDown := GetKeyState("LAlt", "P")
-    if (GetKeyState("LAlt", "P")) {
-        altDown := true
-    } else {
-        altDown := false
-    }
 
 
     if (altDown) {
         if (tabPressed) {
+            ; remember, this runs repeatedly if tab has been pressed since alt was down
+
             ; update the window list
-            BuildWindowList(selectedMonitor)
-            if (altPressTime + SWITCHER_DELAY < A_TickCount) {
+            ; BuildWindowList(selectedMonitor)
+            if (A_TickCount - altPressTime > SWITCHER_DELAY) {
                 if (!switcherShown) {
+                    WriteLog("showing switcher...")
+                    ;this will run ONCE, after the delay, if alt is still held.
                     UpdateControls()
                     ; UpdateSelected(selectedIndex)
                     ChangeSelectedIndex(selectedIndex)
@@ -241,8 +309,18 @@ AltDownLoop() {
                 } else {
                     ;periodically update switcher
                     if (A_TickCount - lastupdate > UPDATE_SPEED) {
+                        WriteLog("periodically updating controls")
+                        ; we rebuild, update controls and selected here
+                        ; a new window could appear!
+                        BuildWindowList(selectedMonitor)
                         UpdateControls()
+                        UpdateSelected()
+                        ; show the switcher (even though its already shown) to update the size if needbe
+                        if (switcherShown) {
+                            ShowSwitcher()
+                        }
                         ; ToolTip("hi")
+
                         lastupdate := A_TickCount
                     }
                 }
@@ -251,50 +329,34 @@ AltDownLoop() {
         }
         SetTimer(AltDownLoop, -ALT_CHECK_DELAY)
     } else {
-        ; when alt released
-        if (tabPressed) {
-            if (switcherShown) {
-                HideSwitcher()
-            }
-            ; tempwindowstring := ""
-            ; for index, w in windows {
-            ;     tempwindowstring := tempwindowstring w.title "`n"
-            ; }
-            ; ToolTip("focus index " selectedIndex "`n windows: " tempwindowstring)
 
-            hwnd := GetHWNDFromIndex(selectedIndex)
-            if (hwnd != -1) {
-                FocusWindow(hwnd)
-            } else {
-                MsgBox("no hwnd",)
-            }
-            selectedIndex := 1
-            lastIndex := 1
-            selectedMonitor := 0
-        } else {
-            ; ToolTip("no tab", , , 10)
-        }
     }
 }
 
 #HotIf altDown
-*Tab:: {
-    global tabPressed
-    tabPressed := true
-    ; UpdateControls()
-    ChangeSelectedIndexBy(1)
-}
+; *Tab:: {
+;     MsgBox("hi")
+;     global tabPressed
+;     tabPressed := true
+;     ; UpdateControls()
+;     ; SetTimer(AltDownLoop, -1)
+;     ChangeSelectedIndexBy(1)
+; }
 
-*+Tab:: {
-    global tabPressed
-    tabPressed := true
-    ; UpdateControls()
-    ChangeSelectedIndexBy(-1)
+
+
+*Esc:: {
+    global altDown
+    altDown := false
+
+    HideSwitcher()
 }
 
 
 ChangeSelectedIndexBy(change) {
     global selectedIndex
+    WriteLog("ChangeSelectedIndexBy" change)
+
     selectedIndex += change
     if (selectedIndex > listOfWindows.Length) {
         selectedIndex := 1
@@ -312,33 +374,7 @@ ChangeSelectedIndexBy(change) {
     ; switcherGui.Show()
 }
 
-*`:: {
-    global selectedMonitor, selectedIndex, tabPressed
-    tabPressed := true
 
-    ; showMonitor += 1
-    ; monitorCount := MonitorGetCount()
-    ; if showMonitor > MonitorGetCount() {
-    ;     showMonitor := 1
-    ; }
-    ; if showMonitor < 1 {
-    ;     showMonitor := MonitorGetCount()
-    ; }
-    ; ToolTip(showMonitor)
-    ; HideSwitcher()
-    ; selectedIndex := 1
-    ; BuildWindowList(showMonitor ? showMonitor : GetMouseMonitor())
-    ; ShowSwitcher()
-    ; ChangeGuiSelectedText(1, 1)
-
-    HandleTilde(1)
-}
-
-+`:: {
-    global selectedMonitor, selectedIndex, tabPressed
-    tabPressed := true
-    HandleTilde(-1)
-}
 
 #HotIf altDown && tabPressed
 
@@ -357,7 +393,7 @@ ChangeSelectedIndexBy(change) {
 *WheelUp:: ChangeSelectedIndexBy(-1)
 
 
-*q:: {
+*e:: {
     if (!ENABLE_MOUSEMOVE_KEYBIND)
         return
 
@@ -471,16 +507,14 @@ HandleTilde(change) {
 
     ; BuildWindowList(selectedMonitor)
     ; dont run this if the switcher isn't shown! or it will try do it twice on first alt+tab
-    if (switcherShown) {
-        ; update the controls for removed windows, resized windows etc.
-        UpdateControls()
-    }
     ; UpdateSelected()
     ; switcherGui.Show()
 
 
-    UpdateSelected()
+    UpdateControls()
 
+    ShowSwitcher()
+    UpdateSelected()
 
 }
 
@@ -488,9 +522,11 @@ HandleNumber(num) {
     global selectedMonitor, selectedIndex, lastIndex, tabPressed, listOfWindows
     if (num > 0 && num < listOfWindows.Length) {
         ChangeSelectedIndex(num)
+        UpdateSelected()
         ; selectedIndex := num
     } else {
         ChangeSelectedIndex(listOfWindows.Length)
+        UpdateSelected()
         ; selectedIndex := listOfWindows.Length
     }
 }
@@ -926,6 +962,7 @@ GetThumbnailSize(thumbnailId) {
 
 
 BuildWindowList(monitorNum := MonitorGetPrimary()) {
+    WriteLog("BuildWindowList" monitorNum)
     if (monitorNum = 0) {
         monitorNum := MonitorGetPrimary()
     }
@@ -1005,6 +1042,7 @@ BuildWindowList(monitorNum := MonitorGetPrimary()) {
 ShowSwitcher() {
     global guiUpdateLock, switcherShown
     global switcherWidth, switcherHeight
+    WriteLog("ShowSwitcher")
     switcherShown := true
     if (guiUpdateLock) {
         return
@@ -1030,6 +1068,8 @@ ShowSwitcher() {
 
 TextClick(ctl := '', index := 1, text := '', idk := '', ctl2 := 0) {
     global selectedIndex, altDown, listOfWindows, lastIndex, tabPressed
+    WriteLog("TextClick")
+
     ; MsgBox("hi " ctl2.hwnd)
 
     ; HideSwitcher()
@@ -1063,14 +1103,12 @@ TextMiddleClick(ctl, index, text, idk := "", ctl2 := 0, *) {
     ; UpdateControls()
 
     CloseWindowAndUpdate(ctl2.hwnd)
-
-
-    ; TODO: close window and update list
 }
 
 
 ChangeSelectedIndex(index) {
     global selectedIndex, lastIndex
+    WriteLog("ChangeSelectedIndex" index)
     lastIndex := selectedIndex
     selectedIndex := index
 }
@@ -1079,6 +1117,7 @@ ChangeSelectedIndex(index) {
 HideSwitcher() {
     global switcherGui, switcherShown
     ; switcherGui.Minimize()
+    WriteLog("HideSwitcher")
     switcherGui.Show("Hide")
     switcherShown := false
 }
@@ -1086,6 +1125,7 @@ HideSwitcher() {
 FocusWindow(hwnd) {
     ; WinActivate("ahk_id " hwnd)
     ; try DllCall("SetForegroundWindow", "Ptr", hwnd)
+    WriteLog("FocusWindow" hwnd)
 
     if !WinExist("ahk_id " hwnd)
         return false
