@@ -686,7 +686,7 @@ class windowInfo {
 
         ; UpdateThumbnail(this.thumbnailId,0,0,0,0,0,0)
         try {
-        }
+        
         
         
         this.backgroundctl.Visible := false
@@ -697,6 +697,7 @@ class windowInfo {
             DllCall('dwmapi\DwmUnregisterThumbnail', 'Ptr', this.thumbnailId, 'HRESULT')
         }
         switcherGuiSlots.Delete(this.hwnd)
+        }
     }
 }
 
