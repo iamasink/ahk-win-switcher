@@ -35,6 +35,9 @@ global SWITCHER_DELAY := 100
 ; how often the open switcher will update passively, in ms
 global UPDATE_SPEED := 500
 
+global ALT_CHECK_DELAY := 10
+
+
 
 global SWITCHER_PADDING_LEFT := 10
 global SWITCHER_PADDING_TOP := 10
@@ -93,7 +96,7 @@ global selectedIndex := 1
 global lastIndex := 2
 global iconCache := Map()
 
-global switcherWidth := 500
+global switcherWidth := 0
 global switcherHeight := 0
 
 
@@ -246,7 +249,7 @@ AltDownLoop() {
             } else {
             }
         }
-        SetTimer(AltDownLoop, -1)
+        SetTimer(AltDownLoop, -ALT_CHECK_DELAY)
     } else {
         ; when alt released
         if (tabPressed) {
@@ -289,12 +292,6 @@ AltDownLoop() {
     ChangeSelectedIndexBy(-1)
 }
 
-*o:: {
-    global tabPressed
-    tabPressed := true
-    ; UpdateControls()
-    ChangeSelectedIndexBy(1)
-}
 
 ChangeSelectedIndexBy(change) {
     global selectedIndex
@@ -1042,7 +1039,7 @@ TextClick(ctl := '', index := 1, text := '', idk := '', ctl2 := 0) {
     tabPressed := false
     altDown := false
     HideSwitcher()
-    selectedIndex := 2
+    selectedIndex := 1
     if (listOfWindows.Length > 0) {
         FocusWindow(ctl2.hwnd)
     } else {
