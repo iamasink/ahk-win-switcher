@@ -7,6 +7,7 @@ CoordMode("ToolTip", "Screen")
 
 #DllLoad 'dwmapi'
 
+
 ; if not admin, start as admin
 ; taken from https://www.autohotkey.com/boards/viewtopic.php?p=523250#p523250
 if (!A_IsAdmin) {
@@ -464,26 +465,123 @@ f2:: {
 
 
 f1:: {
-    hwnd := WinActive("A")
+GetWindowNormalPos(hwnd, scalingFactorOverride := 0) {
+    static SW_SHOWNORMAL := 1, SW_SHOWMINIMIZED := 2, SW_SHOWMAXIMIZED := 3
 
-    static DWMWA_EXTENDED_FRAME_BOUNDS := 9
-    rect := Buffer(16, 0)  ; RECT structure: 4 integers (4 bytes each)
-    hResult := DllCall("dwmapi\DwmGetWindowAttribute",
-        "Ptr", hwnd,
-        "UInt", DWMWA_EXTENDED_FRAME_BOUNDS,
-        "Ptr", rect,
-        "UInt", rect.Size)
-    if (hResult != 0)
-        throw OSError("DwmGetWindowAttribute failed", hResult)
-    extendedframeboundsleft := NumGet(rect, 0, "Int")
-    extendedframeboundstop := NumGet(rect, 4, "Int")
-    extendedframeboundsright := NumGet(rect, 8, "Int")
-    extendedframeboundsbottom := NumGet(rect, 12, "Int")
+    dpi := DllCall("GetDpiForWindow", "ptr", hwnd, "uint")
+    ; 96 is 100% i think
+    scalingFactor := scalingFactorOverride ? scalingFactorOverride : dpi / 96
+    ; scalingFactor := 1
+    ; MsgBox("window: " WinGetTitle("ahk_id " hwnd) "`n" hwnd "`n dpi: " dpi "`n scalingFactor: " scalingFactor)
 
-    WinGetPos(&wingetposleft, &wingetposy, &wingetposw, &wingetposh)
+    ; MsgBox("dpi: " dpi)
+
+    state := WinGetMinMax("ahk_id" hwnd)
 
 
-    MsgBox("extendedframebounds`n " extendedframeboundsleft ", " extendedframeboundstop ", " extendedframeboundsbottom ", " extendedframeboundsright ", `n" wingetposleft ", " wingetposy ", " wingetposw ", " wingetposh)
+    ; if fullscreen
+    if (state == 1) {
+        WinGetPos(&x, &y, &w, &h, "ahk_id " hwnd)
+
+
+        ; winMon := GetMonitorAt(centerX, centerY)
+
+
+        ; MonitorGetWorkArea(winMon, &left, &top, &right, &bottom)
+
+
+        ;         return {
+        ;     left: left,
+        ;     top: top,
+        ;     bottom: bottom,
+        ;     right: right,
+        ;     width: right - left,
+        ;     height: bottom - top
+        ; }
+
+        return {
+            left: x,
+            top: y,
+            bottom: y + h,
+            right: x + w,
+            width: w,
+            height: h
+        }
+    }
+
+    ; if normal
+    if (state == 0) {
+
+        ; ; old wingetpos method
+        ; title := WinGetTitle("ahk_id " hwnd)
+        ; ; the window is maximised or normal
+        ; WinGetPos(&x, &y, &w, &h, "ahk_id " hwnd)
+
+        ; return {
+        ;     left: Floor((x) * scalingFactor),
+        ;     right: Floor((x + w) * scalingFactor),
+        ;     bottom: Floor((y + h) * scalingFactor),
+        ;     top: Floor((y) * scalingFactor),
+        ;     width: Floor((w) * scalingFactor),
+        ;     height: Floor((h) * scalingFactor)
+        ; }
+
+
+        ; new DwmGetWindowAttribute DWMWA_EXTENDED_FRAME_BOUNDS method
+
+        static DWMWA_EXTENDED_FRAME_BOUNDS := 9
+        rect := Buffer(16, 0)  ; RECT structure: 4 integers (4 bytes each)
+        hResult := DllCall("dwmapi\DwmGetWindowAttribute",
+            "Ptr", hwnd,
+            "UInt", DWMWA_EXTENDED_FRAME_BOUNDS,
+            "Ptr", rect,
+            "UInt", rect.Size)
+        if (hResult != 0)
+            throw OSError("DwmGetWindowAttribute failed", hResult)
+        extendedframeboundsleft := NumGet(rect, 0, "Int")
+        extendedframeboundstop := NumGet(rect, 4, "Int")
+        extendedframeboundsright := NumGet(rect, 8, "Int")
+        extendedframeboundsbottom := NumGet(rect, 12, "Int")
+
+        ; return {
+        ;     left: extendedframeboundsleft,
+        ;     top: extendedframeboundstop,
+        ;     bottom: extendedframeboundsbottom,
+        ;     right: extendedframeboundsright,
+        ;     width: extendedframeboundsright - extendedframeboundsleft,
+        ;     height: extendedframeboundsbottom - extendedframeboundstop
+        ; }
+
+
+        }
+
+        ; MsgBox("window: " WinGetTitle("ahk_id " hwnd) "`n" hwnd "`n dpi: " dpi "`n scalingFactor: " scalingFactor)
+
+        ; Initialize WINDOWPLACEMENT structure
+        wp := Buffer(44, 0)                   ; Size of WINDOWPLACEMENT struct
+        NumPut("UInt", 44, wp, 0)             ; Set cbSize (structure size)
+        if DllCall("GetWindowPlacement", "Ptr", hwnd, "Ptr", wp) {
+            ; Extract values from structure
+            showCmd := NumGet(wp, 8, "UInt")  ; showCmd at offset 8
+            left := NumGet(wp, 28, "Int")   ; rcNormalPosition.left
+            top := NumGet(wp, 32, "Int")   ; rcNormalPosition.top
+            right := NumGet(wp, 36, "Int")   ; rcNormalPosition.right
+            bottom := NumGet(wp, 40, "Int")   ; rcNormalPosition.bottom
+
+        return {
+            left: Floor((left) * scalingFactor),
+            right: Floor((right) * scalingFactor),
+            bottom: Floor((bottom) * scalingFactor),
+            top: Floor((top) * scalingFactor),
+            width: Floor((right - left) * scalingFactor),
+            height: Floor((bottom - top) * scalingFactor),
+            ; state: showCmd = SW_SHOWMINIMIZED ? "minimized"
+            ;     : showCmd = SW_SHOWMAXIMIZED ? "maximized"
+            ;         : "normal"
+        }
+        }
+        }
+
 }
 
 GetWindowNormalPos(hwnd) {
