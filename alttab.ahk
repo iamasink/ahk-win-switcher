@@ -57,6 +57,8 @@ global OFFSET_THUMBNAIL_Y := 32 + OFFSET_LOGO_Y
 global OFFSET_BACKGROUND_X := 0
 global OFFSET_BACKGROUND_Y := 0
 
+; alt q
+global ENABLE_MOUSEMOVE_KEYBIND := true
 
 
 ; 0= auto, otherwise monitor index
@@ -365,7 +367,11 @@ ChangeSelectedIndexBy(change) {
 *WheelDown:: ChangeSelectedIndexBy(1)
 *WheelUp:: ChangeSelectedIndexBy(-1)
 
+
 *q:: {
+    if (!ENABLE_MOUSEMOVE_KEYBIND) 
+        return
+
     ; jump mouse to active win
     global selectedIndex, listOfWindows
 
