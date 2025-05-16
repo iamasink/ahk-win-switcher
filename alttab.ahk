@@ -29,7 +29,7 @@ global RUN_AS_ADMIN := !DEBUG
 ; true = show thumbnails, horizonal layout, false = no thumbnails, vertical layout
 global USE_THUMBNAILS := true
 ; delay before showing the switcher, in ms
-; if its too low, weird stuff happens. 
+; if its too low, weird stuff happens.
 ; TODO: is this still an issue?
 global SWITCHER_DELAY := 100
 ; how often the open switcher will update passively, in ms
@@ -111,8 +111,8 @@ switcherGui.BackColor := BACKGROUND_COLOUR
 switcherGui.Opt("-Caption +ToolWindow +Resize -DPIScale")
 switcherGui.Opt("+AlwaysOnTop ")
 ; maybe reduce flickering
-; switcherGui.Opt("+0x02000000") ; WS_EX_COMPOSITED & 
-; switcherGui.Opt("+0x00080000") ; WS_EX_LAYERED 
+; switcherGui.Opt("+0x02000000") ; WS_EX_COMPOSITED &
+; switcherGui.Opt("+0x00080000") ; WS_EX_LAYERED
 
 switcherGuiSlots := Map()
 
@@ -127,7 +127,7 @@ f11:: {
     BuildWindowList(selectedMonitor)
     UpdateControls()
     ShowSwitcher()
-} 
+}
 
 f12:: {
     HideSwitcher()
@@ -166,7 +166,7 @@ UpdateSelected() {
     for index, hwnd in listOfWindows {
         try {
             ; MsgBox("hwnd: " hwnd "`nindex: " index)
-    
+
             ; set if selected or not
             switcherslot := switcherGuiSlots[hwnd]
             if (index == selectedIndex) {
@@ -174,12 +174,12 @@ UpdateSelected() {
             } else {
                 switcherslot.SetSelected(false)
             }
-    
+
             ; if (index == selectedIndex +1) {
             ;     switcherslot.Redraw()
             ; }
         }
-        
+
     }
 }
 
@@ -197,15 +197,7 @@ GetHWNDFromIndex(index) {
 }
 
 
-
-
-
-
-
-
-
-
-#HotIf 
+#HotIf
 *~LAlt:: {
     global altDown, altPressTime, showGUI, tabPressed, lastupdate
     ; altDown := true
@@ -245,11 +237,11 @@ AltDownLoop() {
                     ShowSwitcher()
                 } else {
                     ;periodically update switcher
-                    if ( A_TickCount - lastupdate > UPDATE_SPEED) {
+                    if (A_TickCount - lastupdate > UPDATE_SPEED) {
                         UpdateControls()
                         ; ToolTip("hi")
                         lastupdate := A_TickCount
-                    } 
+                    }
                 }
             } else {
             }
@@ -266,7 +258,7 @@ AltDownLoop() {
             ;     tempwindowstring := tempwindowstring w.title "`n"
             ; }
             ; ToolTip("focus index " selectedIndex "`n windows: " tempwindowstring)
-            
+
             hwnd := GetHWNDFromIndex(selectedIndex)
             if (hwnd != -1) {
                 FocusWindow(hwnd)
@@ -298,7 +290,7 @@ AltDownLoop() {
 }
 
 *o:: {
-        global tabPressed
+    global tabPressed
     tabPressed := true
     ; UpdateControls()
     ChangeSelectedIndexBy(1)
@@ -369,7 +361,7 @@ ChangeSelectedIndexBy(change) {
 
 
 *q:: {
-    if (!ENABLE_MOUSEMOVE_KEYBIND) 
+    if (!ENABLE_MOUSEMOVE_KEYBIND)
         return
 
     ; jump mouse to active win
@@ -407,7 +399,6 @@ CloseWindowAndUpdate(hwnd) {
     UpdateControls()
     ; update the now selected control
     UpdateSelected()
-
 
 
 }
@@ -459,28 +450,27 @@ HandleTilde(change) {
         selectedMonitor := monitorCount
     }
 
-        selectedIndex += change
+    selectedIndex += change
     if (selectedIndex > listOfWindows.Length) {
         selectedIndex := 1
     } else if (selectedIndex < 1) {
         selectedIndex := listOfWindows.Length
     }
-    
-    
+
+
     ; ToolTip("change: " change "`n" selectedMonitor "`n" tabPressed "`n" )
     BuildWindowList(selectedMonitor)
     ChangeSelectedIndex(1)
-    
+
     if (switcherShown) {
         UpdateControls()
     }
-    
+
     ; UpdateSelected()
 
     ; ChangeSelectedIndexBy(1)
     ; ChangeSelectedIndexBy(-1)
-    
- 
+
 
     ; BuildWindowList(selectedMonitor)
     ; dont run this if the switcher isn't shown! or it will try do it twice on first alt+tab
@@ -490,7 +480,7 @@ HandleTilde(change) {
     }
     ; UpdateSelected()
     ; switcherGui.Show()
-    
+
 
     UpdateSelected()
 
@@ -509,9 +499,7 @@ HandleNumber(num) {
 }
 
 
-
 class windowInfo {
-
 
 
     hwnd := 0
@@ -531,7 +519,6 @@ class windowInfo {
 
     isSelected := false
 
-
     __New(hwnd, x, y, w, h) {
         this.hwnd := hwnd
         switcherGuiSlots[hwnd] := this
@@ -548,6 +535,9 @@ class windowInfo {
         this.logoctl := switcherGui.addPicture(" w32 h32", this.logo)
 
         this.isSelected := false
+
+        this.backgroundctl.OnEvent("Click", TextClick.Bind(, , , , this))
+        this.backgroundctl.OnEvent("ContextMenu", TextMiddleClick.Bind(, , , , this)) ; rightclick
 
 
         ; create thumbnail
@@ -618,7 +608,7 @@ class windowInfo {
             this.logoctl.Move(x + OFFSET_LOGO_X, y + OFFSET_LOGO_Y)
             this.textctl.Move(x + OFFSET_TEXT_X, y + OFFSET_TEXT_Y, this.w - OFFSET_TEXT_X, 16)
             this.Redraw()
-    
+
             UpdateThumbnail(
                 this.thumbnailId,
                 x + OFFSET_THUMBNAIL_X,
@@ -643,17 +633,17 @@ class windowInfo {
             bgColour := SELECTED_BACKGROUND_COLOUR
             textColour := SELECTED_TEXT_COLOUR
 
-;             this.backgroundctl.Opt("Background" SELECTED_BACKGROUND_COLOUR)
-;             this.logoctl.Opt("Background" SELECTED_BACKGROUND_COLOUR)
-;             this.textctl.Opt("Background" SELECTED_BACKGROUND_COLOUR)
-;             ; this will redraw the text
-;             this.textctl.Opt("c" SELECTED_TEXT_COLOUR)
-; ; redraw these by changing their colour property, this doesnt actually change anything
-; ; but does trick it into redrawing.
+            ;             this.backgroundctl.Opt("Background" SELECTED_BACKGROUND_COLOUR)
+            ;             this.logoctl.Opt("Background" SELECTED_BACKGROUND_COLOUR)
+            ;             this.textctl.Opt("Background" SELECTED_BACKGROUND_COLOUR)
+            ;             ; this will redraw the text
+            ;             this.textctl.Opt("c" SELECTED_TEXT_COLOUR)
+            ; ; redraw these by changing their colour property, this doesnt actually change anything
+            ; ; but does trick it into redrawing.
 
-;             this.backgroundctl.Opt("c" SELECTED_TEXT_COLOUR)
+            ;             this.backgroundctl.Opt("c" SELECTED_TEXT_COLOUR)
 
-;             this.logoctl.Opt("c" SELECTED_TEXT_COLOUR)
+            ;             this.logoctl.Opt("c" SELECTED_TEXT_COLOUR)
         } else {
             this.isSelected := false
 
@@ -665,8 +655,8 @@ class windowInfo {
         this.textctl.Opt("Background" bgColour)
         ; this will redraw the text
         this.textctl.Opt("c" textColour)
-; redraw these by changing their colour property, this doesnt actually change anything
-; but does trick it into redrawing, seemingly more seamlessly than using .Redraw()
+        ; redraw these by changing their colour property, this doesnt actually change anything
+        ; but does trick it into redrawing, seemingly more seamlessly than using .Redraw()
         this.backgroundctl.Opt("c" textColour)
         this.logoctl.Opt("c" textColour)
         ; this.Redraw()
@@ -688,17 +678,16 @@ class windowInfo {
 
         ; UpdateThumbnail(this.thumbnailId,0,0,0,0,0,0)
         try {
-        
-        
-        
-        this.backgroundctl.Visible := false
-        this.logoctl.Visible := false
-        this.textctl.Visible := false
-        ; this.Redraw()
-        try {
-            DllCall('dwmapi\DwmUnregisterThumbnail', 'Ptr', this.thumbnailId, 'HRESULT')
-        }
-        switcherGuiSlots.Delete(this.hwnd)
+
+
+            this.backgroundctl.Visible := false
+            this.logoctl.Visible := false
+            this.textctl.Visible := false
+            ; this.Redraw()
+            try {
+                DllCall('dwmapi\DwmUnregisterThumbnail', 'Ptr', this.thumbnailId, 'HRESULT')
+            }
+            switcherGuiSlots.Delete(this.hwnd)
         }
     }
 }
@@ -717,30 +706,28 @@ UpdateControls() {
     ;     }
     ; }
 
-; for _, win in listOfWindows {
-;     if (win.hwnd = hwnd) {
-;         found := true
-;         break
-;     }
-; }
-; if !found {
-;     Peep(listOfWindows, switcherGuiSlots, wininfo, hwnd)
-;     wininfo.Destroy()
-; }
+    ; for _, win in listOfWindows {
+    ;     if (win.hwnd = hwnd) {
+    ;         found := true
+    ;         break
+    ;     }
+    ; }
+    ; if !found {
+    ;     Peep(listOfWindows, switcherGuiSlots, wininfo, hwnd)
+    ;     wininfo.Destroy()
+    ; }
 
-; first remove unneeded windows
+    ; first remove unneeded windows
     windowLookup := Map()
     for index, hwnd in listOfWindows
-        windowLookup[ hwnd ] := true
+        windowLookup[hwnd] := true
 
     ; Peep(windowLookup)
     ; Peep(switcherGuiSlots)
 
     ; sometimes this doesnt function correctly. IDK
-    for hwnd, wininfo in switcherGuiSlots
-    {
-        if !windowLookup.Has(hwnd)
-        {
+    for hwnd, wininfo in switcherGuiSlots {
+        if !windowLookup.Has(hwnd) {
             ; if (DEBUG) MsgBox("destroying. this is bad unless you closed a window")
             wininfo.Destroy()
         }
@@ -748,7 +735,6 @@ UpdateControls() {
 
 
     ; Peep(windowLookup)
-
 
 
     row := 0
@@ -763,17 +749,17 @@ UpdateControls() {
 
 
         ; get the windows size for aspect ratio stuffs
-        ; this could possibly be done with dwmapi\DwmQueryThumbnailSourceSize    
+        ; this could possibly be done with dwmapi\DwmQueryThumbnailSourceSize
 
 
         method := 1
         if method = 0 {
             ; this doewsnt work correctly, wrong index vs thumbnail id
             pSize := Buffer(8, 0)
-    
+
             result := DllCall('dwmapi\DwmQueryThumbnailSourceSize', 'Ptr', index, 'Ptr', pSize.Ptr, 'UInt')
-    
-    
+
+
             sourceW := NumGet(pSize, 0, 'Int')
             sourceH := NumGet(pSize, 4, 'Int')
         } else {
@@ -782,7 +768,6 @@ UpdateControls() {
             sourceH := windowSize.height
         }
 
-    
 
         ; aspect ratio in terms of width = height * aspectratio
         ; so height = width / aspectratio
@@ -801,21 +786,11 @@ UpdateControls() {
         }
 
 
-
-
-    
-
-
-
-
         ; MsgBox("hwnd: " hwnd "`nindex: " index)
-        y := SWITCHER_PADDING_TOP + (row * (SWITCHER_ITEM_MAXHEIGHT + OFFSET_THUMBNAIL_Y + 1) )
+        y := SWITCHER_PADDING_TOP + (row * (SWITCHER_ITEM_MAXHEIGHT + OFFSET_THUMBNAIL_Y + 1))
         x := lastx
         lastx += w + SWITCHER_ITEM_PADDING_WIDTH
         rowWidth := lastx
-
-
-
 
 
         CreateOrUpdateControl(hwnd, x, y, w, h)
@@ -826,7 +801,7 @@ UpdateControls() {
             switcherWidth := lastx
         }
 
-        if (rowWidth >= A_ScreenWidth* (SWITCHER_MAXSCREENWIDTH_PERCENTAGE)) {
+        if (rowWidth >= A_ScreenWidth * (SWITCHER_MAXSCREENWIDTH_PERCENTAGE)) {
             row += 1
             lastx := SWITCHER_PADDING_LEFT
 
@@ -847,7 +822,7 @@ CreateOrUpdateControl(hwnd, x, y, w, h) {
         ) {
             ; MsgBox("skipping hwnd: " hwnd)
             ; ToolTip("skipping hwnd: " hwnd)
-            
+
         } else {
             ; MsgBox("moving hwnd:" hwnd)
             ; title := WinGetTitle("ahk_id " hwnd)
@@ -857,7 +832,7 @@ CreateOrUpdateControl(hwnd, x, y, w, h) {
     } else {
         ; msgbox("creating " hwnd)
         mywindowInfo := windowInfo(hwnd, x, y, w, h)
-        mywindowInfo.SetPos(x,y,w,h)
+        mywindowInfo.SetPos(x, y, w, h)
     }
 }
 
@@ -940,16 +915,16 @@ UpdateThumbnail(thumbNailId, guiPosX, guiPosY, thumbW, thumbH, sourceW := 0, sou
 
 GetThumbnailSize(thumbnailId) {
 
-        pSize := Buffer(8, 0)
+    pSize := Buffer(8, 0)
 
-        result := DllCall('dwmapi\DwmQueryThumbnailSourceSize', 'Ptr', thumbNailId, 'Ptr', pSize.Ptr, 'UInt')
+    result := DllCall('dwmapi\DwmQueryThumbnailSourceSize', 'Ptr', thumbNailId, 'Ptr', pSize.Ptr, 'UInt')
 
 
-        sourceW := NumGet(pSize, 0, 'Int')
-        sourceH := NumGet(pSize, 4, 'Int')
-        ; MsgBox("sourceW: " sourceW "`nsourceH: " sourceH)
-        return { w: sourceW, h: sourceH}
-    
+    sourceW := NumGet(pSize, 0, 'Int')
+    sourceH := NumGet(pSize, 4, 'Int')
+    ; MsgBox("sourceW: " sourceW "`nsourceH: " sourceH)
+    return { w: sourceW, h: sourceH }
+
 }
 
 
@@ -1041,14 +1016,14 @@ ShowSwitcher() {
     w := switcherWidth + 50
     h := switcherHeight + 300
     x := (A_ScreenWidth - w) // 2
-    y := (A_ScreenHeight - h) // 2 
+    y := (A_ScreenHeight - h) // 2
 
 
     ; prevent flashing
     ; switcherGui.Show("x10000 y10000 w" w " h" h)
     ; Sleep(100)
 
-    switcherGui.AddText(,"monitor: " selectedMonitor)
+    switcherGui.AddText(, "monitor: " selectedMonitor)
     switcherGui.Show("w" w " h" h " x" x " y" y)
     ; switcherGui.Opt()
 
@@ -1056,10 +1031,10 @@ ShowSwitcher() {
     guiUpdateLock := false
 }
 
-TextClick(ctl:='', index:=1, text:='', idk:='', ctl2:=0) {
+TextClick(ctl := '', index := 1, text := '', idk := '', ctl2 := 0) {
     global selectedIndex, altDown, listOfWindows, lastIndex, tabPressed
     ; MsgBox("hi " ctl2.hwnd)
-    
+
     ; HideSwitcher()
     ; set the index then act as if alt was released
     ; selectedIndex := index
@@ -1075,7 +1050,7 @@ TextClick(ctl:='', index:=1, text:='', idk:='', ctl2:=0) {
     }
 }
 
-TextMiddleClick(ctl, index, text, idk:="", ctl2:=0,*) {
+TextMiddleClick(ctl, index, text, idk := "", ctl2 := 0, *) {
     global selectedIndex, altDown
     ; close window from hwnd
     ; WinClose("ahk_id " ctl2.hwnd)
@@ -1091,7 +1066,6 @@ TextMiddleClick(ctl, index, text, idk:="", ctl2:=0,*) {
     ; UpdateControls()
 
     CloseWindowAndUpdate(ctl2.hwnd)
-
 
 
     ; TODO: close window and update list
@@ -1173,39 +1147,39 @@ GetWindowNormalPos(hwnd, scalingFactorOverride := 0) {
 
 
     ; if fullscreen
-    if (state == 1 || state == 0 ) {
+    if (state == 1 || state == 0) {
         try {
 
-        
-        WinGetPos(&x, &y, &w, &h, "ahk_id " hwnd)
+
+            WinGetPos(&x, &y, &w, &h, "ahk_id " hwnd)
 
 
-        ; winMon := GetMonitorAt(centerX, centerY)
+            ; winMon := GetMonitorAt(centerX, centerY)
 
 
-        ; MonitorGetWorkArea(winMon, &left, &top, &right, &bottom)
+            ; MonitorGetWorkArea(winMon, &left, &top, &right, &bottom)
 
 
-        ;         return {
-        ;     left: left,
-        ;     top: top,
-        ;     bottom: bottom,
-        ;     right: right,
-        ;     width: right - left,
-        ;     height: bottom - top
-        ; }
+            ;         return {
+            ;     left: left,
+            ;     top: top,
+            ;     bottom: bottom,
+            ;     right: right,
+            ;     width: right - left,
+            ;     height: bottom - top
+            ; }
 
-        return {
-            left: x,
-            top: y,
-            bottom: y + h,
-            right: x + w,
-            width: w,
-            height: h
+            return {
+                left: x,
+                top: y,
+                bottom: y + h,
+                right: x + w,
+                width: w,
+                height: h
+            }
         }
     }
-    }
-    
+
     ; if normal
     ; if (state == 0) {
 
@@ -1213,7 +1187,7 @@ GetWindowNormalPos(hwnd, scalingFactorOverride := 0) {
     ;     ; title := WinGetTitle("ahk_id " hwnd)
     ;     ; ; the window is maximised or normal
     ;     ; WinGetPos(&x, &y, &w, &h, "ahk_id " hwnd)
-        
+
     ;     ; return {
     ;     ;     left: Floor((x) * scalingFactor),
     ;     ;     right: Floor((x + w) * scalingFactor),
@@ -1246,14 +1220,14 @@ GetWindowNormalPos(hwnd, scalingFactorOverride := 0) {
     ;     ;     bottom: extendedframeboundsbottom,
     ;     ;     right: extendedframeboundsright,
     ;     ;     width: extendedframeboundsright - extendedframeboundsleft,
-    ;     ;     height: extendedframeboundsbottom - extendedframeboundstop 
+    ;     ;     height: extendedframeboundsbottom - extendedframeboundstop
     ;     ; }
 
 
     ; }
-    
+
     ; MsgBox("window: " WinGetTitle("ahk_id " hwnd) "`n" hwnd "`n dpi: " dpi "`n scalingFactor: " scalingFactor)
-    
+
     ; Initialize WINDOWPLACEMENT structure
     wp := Buffer(44, 0)                   ; Size of WINDOWPLACEMENT struct
     NumPut("UInt", 44, wp, 0)             ; Set cbSize (structure size)
