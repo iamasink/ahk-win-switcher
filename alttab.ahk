@@ -751,6 +751,8 @@ UpdateControls() {
     row := 0
     rowWidth := 0
     lastx := SWITCHER_PADDING_LEFT
+    switcherWidth := 0
+    switcherHeight := 0
 
     for index, hwnd in listOfWindows {
         ; we want to limit both width and height to an extent
