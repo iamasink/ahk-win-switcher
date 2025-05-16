@@ -1164,52 +1164,88 @@ GetWindowNormalPos(hwnd, scalingFactorOverride := 0) {
 
     ; MsgBox("dpi: " dpi)
 
-    
-    ; if fullscreen maximized or normal
-    if (WinGetMinMax("ahk_id " hwnd) == 1 || WinGetMinMax("ahk_id " hwnd) == 0) {
+    state := WinGetMinMax("ahk_id" hwnd)
 
-        ; ; old wingetpos method
-        ; title := WinGetTitle("ahk_id " hwnd)
-        ; ; the window is maximised or normal
-        ; WinGetPos(&x, &y, &w, &h, "ahk_id " hwnd)
+
+    ; if fullscreen
+    if (state == 1 || state == 0 ) {
+        try {
+
         
-        ; return {
-        ;     left: Floor((x) * scalingFactor),
-        ;     right: Floor((x + w) * scalingFactor),
-        ;     bottom: Floor((y + h) * scalingFactor),
-        ;     top: Floor((y) * scalingFactor),
-        ;     width: Floor((w) * scalingFactor),
-        ;     height: Floor((h) * scalingFactor)
+        WinGetPos(&x, &y, &w, &h, "ahk_id " hwnd)
+
+
+        ; winMon := GetMonitorAt(centerX, centerY)
+
+
+        ; MonitorGetWorkArea(winMon, &left, &top, &right, &bottom)
+
+
+        ;         return {
+        ;     left: left,
+        ;     top: top,
+        ;     bottom: bottom,
+        ;     right: right,
+        ;     width: right - left,
+        ;     height: bottom - top
         ; }
 
-
-        ; new DwmGetWindowAttribute DWMWA_EXTENDED_FRAME_BOUNDS method
-
-        static DWMWA_EXTENDED_FRAME_BOUNDS := 9
-        rect := Buffer(16, 0)  ; RECT structure: 4 integers (4 bytes each)
-        hResult := DllCall("dwmapi\DwmGetWindowAttribute",
-            "Ptr", hwnd,
-            "UInt", DWMWA_EXTENDED_FRAME_BOUNDS,
-            "Ptr", rect,
-            "UInt", rect.Size)
-        if (hResult != 0)
-            throw OSError("DwmGetWindowAttribute failed", hResult)
-        extendedframeboundsleft := NumGet(rect, 0, "Int")
-        extendedframeboundstop := NumGet(rect, 4, "Int")
-        extendedframeboundsright := NumGet(rect, 8, "Int")
-        extendedframeboundsbottom := NumGet(rect, 12, "Int")
-
-        ; return {
-        ;     left: extendedframeboundsleft,
-        ;     top: extendedframeboundstop,
-        ;     bottom: extendedframeboundsbottom,
-        ;     right: extendedframeboundsright,
-        ;     width: extendedframeboundsright - extendedframeboundsleft,
-        ;     height: extendedframeboundsbottom - extendedframeboundstop 
-        ; }
-
-
+        return {
+            left: x,
+            top: y,
+            bottom: y + h,
+            right: x + w,
+            width: w,
+            height: h
+        }
     }
+    }
+    
+    ; if normal
+    ; if (state == 0) {
+
+    ;     ; ; old wingetpos method
+    ;     ; title := WinGetTitle("ahk_id " hwnd)
+    ;     ; ; the window is maximised or normal
+    ;     ; WinGetPos(&x, &y, &w, &h, "ahk_id " hwnd)
+        
+    ;     ; return {
+    ;     ;     left: Floor((x) * scalingFactor),
+    ;     ;     right: Floor((x + w) * scalingFactor),
+    ;     ;     bottom: Floor((y + h) * scalingFactor),
+    ;     ;     top: Floor((y) * scalingFactor),
+    ;     ;     width: Floor((w) * scalingFactor),
+    ;     ;     height: Floor((h) * scalingFactor)
+    ;     ; }
+
+
+    ;     ; new DwmGetWindowAttribute DWMWA_EXTENDED_FRAME_BOUNDS method
+
+    ;     static DWMWA_EXTENDED_FRAME_BOUNDS := 9
+    ;     rect := Buffer(16, 0)  ; RECT structure: 4 integers (4 bytes each)
+    ;     hResult := DllCall("dwmapi\DwmGetWindowAttribute",
+    ;         "Ptr", hwnd,
+    ;         "UInt", DWMWA_EXTENDED_FRAME_BOUNDS,
+    ;         "Ptr", rect,
+    ;         "UInt", rect.Size)
+    ;     if (hResult != 0)
+    ;         throw OSError("DwmGetWindowAttribute failed", hResult)
+    ;     extendedframeboundsleft := NumGet(rect, 0, "Int")
+    ;     extendedframeboundstop := NumGet(rect, 4, "Int")
+    ;     extendedframeboundsright := NumGet(rect, 8, "Int")
+    ;     extendedframeboundsbottom := NumGet(rect, 12, "Int")
+
+    ;     ; return {
+    ;     ;     left: extendedframeboundsleft,
+    ;     ;     top: extendedframeboundstop,
+    ;     ;     bottom: extendedframeboundsbottom,
+    ;     ;     right: extendedframeboundsright,
+    ;     ;     width: extendedframeboundsright - extendedframeboundsleft,
+    ;     ;     height: extendedframeboundsbottom - extendedframeboundstop 
+    ;     ; }
+
+
+    ; }
     
     ; MsgBox("window: " WinGetTitle("ahk_id " hwnd) "`n" hwnd "`n dpi: " dpi "`n scalingFactor: " scalingFactor)
     
