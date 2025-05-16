@@ -612,18 +612,20 @@ class windowInfo {
         this.y := y
         this.w := w
         this.h := h
-        this.backgroundctl.Move(x + OFFSET_BACKGROUND_X, y + OFFSET_BACKGROUND_Y, w + OFFSET_THUMBNAIL_X + 1, h + OFFSET_THUMBNAIL_Y + 1)
-        ; this.backgroundctl.Opt("Backgroundff00ff")
-        this.logoctl.Move(x + OFFSET_LOGO_X, y + OFFSET_LOGO_Y)
-        this.textctl.Move(x + OFFSET_TEXT_X, y + OFFSET_TEXT_Y, this.w - OFFSET_TEXT_X, 16)
-        this.Redraw()
-
-        UpdateThumbnail(
-            this.thumbnailId,
-            x + OFFSET_THUMBNAIL_X,
-            y + OFFSET_THUMBNAIL_Y,
-            w,
-            h)
+        try {
+            this.backgroundctl.Move(x + OFFSET_BACKGROUND_X, y + OFFSET_BACKGROUND_Y, w + OFFSET_THUMBNAIL_X + 1, h + OFFSET_THUMBNAIL_Y + 1)
+            ; this.backgroundctl.Opt("Backgroundff00ff")
+            this.logoctl.Move(x + OFFSET_LOGO_X, y + OFFSET_LOGO_Y)
+            this.textctl.Move(x + OFFSET_TEXT_X, y + OFFSET_TEXT_Y, this.w - OFFSET_TEXT_X, 16)
+            this.Redraw()
+    
+            UpdateThumbnail(
+                this.thumbnailId,
+                x + OFFSET_THUMBNAIL_X,
+                y + OFFSET_THUMBNAIL_Y,
+                w,
+                h)
+        }
 
     }
 
