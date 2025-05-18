@@ -13,6 +13,14 @@ InstallKeybdHook(1)
 
 
 ; main config options
+global DEBUG := false
+
+; required to alt tab from admin windows, eg task manager
+; suggested true, but false can be useful for debugging
+global RUN_AS_ADMIN := !DEBUG
+
+
+
 ; the background colour of the main switcher window
 global BACKGROUND_COLOUR := "202020"
 ; the colour of the selected window highlight
@@ -22,11 +30,6 @@ global TEXT_COLOUR := "ffffff"
 
 global SELECTED_TEXT_COLOUR := "101010"
 
-global DEBUG := false
-
-; required to alt tab from admin windows, eg task manager
-; suggested true, but false can be useful for debugging
-global RUN_AS_ADMIN := !DEBUG
 ; true = show thumbnails, horizonal layout, false = no thumbnails, vertical layout
 global USE_THUMBNAILS := true
 ; delay before showing the switcher, in ms
@@ -62,16 +65,13 @@ global OFFSET_THUMBNAIL_Y := 32 + OFFSET_LOGO_Y
 global OFFSET_BACKGROUND_X := 0
 global OFFSET_BACKGROUND_Y := 0
 
-; alt e
+; alt e bind
 global ENABLE_MOUSEMOVE_KEYBIND := true
 
 
-; 0= auto, otherwise monitor index
-; global displayOnMonitor := 2 ; currently not used
 
 ; if not admin, start as admin
 ; taken from https://www.autohotkey.com/boards/viewtopic.php?p=523250#p523250
-
 if (RUN_AS_ADMIN && !A_IsAdmin) {
     try {
         ; MsgBox("Running as admin...")
