@@ -593,6 +593,12 @@ class windowInfo {
 
 
     }
+    UpdateTitle() {
+        newtitle := WinGetTitle("ahk_id " this.hwnd)
+        if (newtitle != this.text) {
+            this.SetTitle(newtitle)
+        }
+    }
     SetTitle(title) {
         this.text := title
         ; Peep(this)
@@ -847,6 +853,8 @@ UpdateControls() {
 CreateOrUpdateControl(hwnd, x, y, w, h) {
     global switcherGuiSlots
     if (switcherGuiSlots.Has(hwnd)) {
+            switcherGuiSlots[hwnd].UpdateTitle()
+
         ; msgbox("updating " hwnd)
         if (switcherGuiSlots[hwnd].x = x &&
             switcherGuiSlots[hwnd].y = y &&
@@ -866,6 +874,8 @@ CreateOrUpdateControl(hwnd, x, y, w, h) {
         ; msgbox("creating " hwnd)
         mywindowInfo := windowInfo(hwnd, x, y, w, h)
         mywindowInfo.SetPos(x, y, w, h)
+        ; mywindowInfo.UpdateTitle()
+        
     }
 }
 
