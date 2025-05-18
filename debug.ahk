@@ -10,22 +10,22 @@ CoordMode("ToolTip", "Screen")
 
 ; if not admin, start as admin
 ; taken from https://www.autohotkey.com/boards/viewtopic.php?p=523250#p523250
-if (!A_IsAdmin) {
-    try {
-        ; MsgBox("Running as admin...")
-        Run("*RunAs `"" A_ScriptFullPath "`"")
-        ; wait, so that the script doesnt continue running and instead restarts as admin (hopefully) before this runs out, otherwise it will just close.
-        Sleep(10000)
-        MsgBox("Couldn't run " A_ScriptName " as admin! Exiting..")
-        Sleep(5000)
-        ExitApp()
-    }
-    catch {
-        MsgBox("Couldn't run " A_ScriptName " as admin! Exiting..")
-        Sleep(5000)
-        ExitApp()
-    }
-}
+; if (!A_IsAdmin) {
+;     try {
+;         ; MsgBox("Running as admin...")
+;         Run("*RunAs `"" A_ScriptFullPath "`"")
+;         ; wait, so that the script doesnt continue running and instead restarts as admin (hopefully) before this runs out, otherwise it will just close.
+;         Sleep(10000)
+;         MsgBox("Couldn't run " A_ScriptName " as admin! Exiting..")
+;         Sleep(5000)
+;         ExitApp()
+;     }
+;     catch {
+;         MsgBox("Couldn't run " A_ScriptName " as admin! Exiting..")
+;         Sleep(5000)
+;         ExitApp()
+;     }
+; }
 
 F9:: {
     hwnd := WinExist("A")
@@ -140,35 +140,31 @@ F9:: {
 }
 
 F8:: {
-    try {
-        hwnd := WinExist("A")
-        if !hwnd {
-            MsgBox("No active window")
-            return
-        }
-
-        logoPath := GetLargestUWPLogoPath(hwnd)
-        if !logoPath {
-            MsgBox("Not a UWP app or no logo found")
-            return
-        }
-
-        if !FileExist(logoPath) {
-            MsgBox("Logo file not found:`n" logoPath)
-            return
-        }
-
-        ; Create preview GUI
-        previewGui := Gui("+AlwaysOnTop +ToolWindow", "UWP Logo Preview")
-        previewGui.SetFont("s10", "Segoe UI")
-        previewGui.Add("Text", "w500", "Path: " logoPath)
-        previewGui.Add("Picture", "w256 h256", logoPath)
-        previewGui.Add("Button", "Default w100", "Close").OnEvent("Click", (*) => previewGui.Destroy())
-        previewGui.Show("AutoSize Center")
+    hwnd := WinExist("A")
+    if !hwnd {
+        MsgBox("No active window")
+        return
     }
-    catch as e {
-        MsgBox("Error retrieving logo:`n" e.Message)
+
+    logoPath := GetLargestUWPLogoPath(hwnd)
+    if !logoPath {
+        MsgBox("Not a UWP app or no logo found")
+        return
     }
+
+    if !FileExist(logoPath) {
+        MsgBox("Logo file not found:`n" logoPath)
+        return
+    }
+
+    ; Create preview GUI
+    previewGui := Gui("+AlwaysOnTop +ToolWindow", "UWP Logo Preview")
+    previewGui.SetFont("s10", "Segoe UI")
+    previewGui.Add("Text", "w500", "Path: " logoPath)
+    previewGui.Add("Picture", "w256 h256", logoPath)
+    previewGui.Add("Button", "Default w100", "Close").OnEvent("Click", (*) => previewGui.Destroy())
+    previewGui.Show("AutoSize Center")
+
 }
 
 f7:: {
@@ -247,12 +243,104 @@ GetLargestUWPLogoPath(hwnd) {
     }
 
     GetLargestLogoPath(Path) {
-        LoopFileSize := 99999999
+        ;     LoopFileSize := 99999999
+        ;     SplitPath Path, , &Dir, &Extension, &NameNoExt
+        ;     pathcandidates := []
+        ;     loop files Dir '\' NameNoExt '.scale-*.' Extension {
+        ;         if A_LoopFileSize <= LoopFileSize && RegExMatch(A_LoopFileName, '\d+\.' Extension '$') { ; Avoid contrast files.
+        ;             LoopFilePath := A_LoopFilePath, LoopFileSize := A_LoopFileSize
+        ;             pathcandidates.Push(LoopFilePath)
+        ;             }
+
+        ;             str := ""
+        ;             for i in pathcandidates {
+        ;                 str := str " " i
+        ;             }
+        ;             }
+        ;             MsgBox(str)
+        ; }
+
+
         SplitPath Path, , &Dir, &Extension, &NameNoExt
-        loop files Dir '\' NameNoExt '.scale-*.' Extension
-            if A_LoopFileSize < LoopFileSize && RegExMatch(A_LoopFileName, '\d+\.' Extension '$')  ; Avoid contrast files.
-                LoopFilePath := A_LoopFilePath, LoopFileSize := A_LoopFileSize
-        return LoopFilePath
+
+        ; allfiles := []
+        best := ""
+        besttype := 0
+
+        target := 32
+
+        loop files Dir "\" "*.png" {
+            if RegExMatch(A_LoopFileName, ".*\.targetsize-256\." . Extension . "$") {
+                type := 100
+                if (type > besttype) {
+                    best := A_LoopFilePath
+                    besttype := type
+                }
+            }
+            if RegExMatch(A_LoopFileName, ".*\.targetsize-96\." . Extension . "$") {
+                type := 96
+                if (type > besttype) {
+                    best := A_LoopFilePath
+                    besttype := type
+                }
+            }
+            if RegExMatch(A_LoopFileName, ".*\.targetsize-72\." . Extension . "$") {
+                type := 72
+                if (type > besttype) {
+                    best := A_LoopFilePath
+                    besttype := type
+                }
+            }
+            if RegExMatch(A_LoopFileName, ".*\.targetsize-48\." . Extension . "$") {
+                type := 48
+                if (type > besttype) {
+                    best := A_LoopFilePath
+                    besttype := type
+                }
+            }
+            if RegExMatch(A_LoopFileName, ".*\.targetsize-36\." . Extension . "$") {
+                type := 36
+                if (type > besttype) {
+                    best := A_LoopFilePath
+                    besttype := type
+                }
+            }
+            if RegExMatch(A_LoopFileName, ".*\.targetsize-32\." . Extension . "$") {
+                type := 32
+                if (type > besttype) {
+                    best := A_LoopFilePath
+                    besttype := type
+                }
+                if (type == target) {
+                    best := A_LoopFilePath
+                    besttype := 1000
+                }
+            }
+            if RegExMatch(A_LoopFileName, ".*\.scale-400\." . Extension . "$") {
+                type := 4
+                if (type > besttype) {
+                    best := A_LoopFilePath
+                    besttype := type
+                }
+            }
+            if RegExMatch(A_LoopFileName, ".*\.scale-200\." . Extension . "$") {
+                type := 3
+                if (type > besttype) {
+                    best := A_LoopFilePath
+                    besttype := type
+                }
+            }
+            if RegExMatch(A_LoopFileName, ".*\.scale-100\." . Extension . "$") {
+                type := 2
+                if (type > besttype) {
+                    best := A_LoopFilePath
+                    besttype := type
+                }
+            }
+        }
+
+
+        return best
     }
 }
 
@@ -465,92 +553,92 @@ f2:: {
 
 
 f1:: {
-GetWindowNormalPos(hwnd, scalingFactorOverride := 0) {
-    static SW_SHOWNORMAL := 1, SW_SHOWMINIMIZED := 2, SW_SHOWMAXIMIZED := 3
+    GetWindowNormalPos(hwnd, scalingFactorOverride := 0) {
+        static SW_SHOWNORMAL := 1, SW_SHOWMINIMIZED := 2, SW_SHOWMAXIMIZED := 3
 
-    dpi := DllCall("GetDpiForWindow", "ptr", hwnd, "uint")
-    ; 96 is 100% i think
-    scalingFactor := scalingFactorOverride ? scalingFactorOverride : dpi / 96
-    ; scalingFactor := 1
-    ; MsgBox("window: " WinGetTitle("ahk_id " hwnd) "`n" hwnd "`n dpi: " dpi "`n scalingFactor: " scalingFactor)
+        dpi := DllCall("GetDpiForWindow", "ptr", hwnd, "uint")
+        ; 96 is 100% i think
+        scalingFactor := scalingFactorOverride ? scalingFactorOverride : dpi / 96
+        ; scalingFactor := 1
+        ; MsgBox("window: " WinGetTitle("ahk_id " hwnd) "`n" hwnd "`n dpi: " dpi "`n scalingFactor: " scalingFactor)
 
-    ; MsgBox("dpi: " dpi)
+        ; MsgBox("dpi: " dpi)
 
-    state := WinGetMinMax("ahk_id" hwnd)
-
-
-    ; if fullscreen
-    if (state == 1) {
-        WinGetPos(&x, &y, &w, &h, "ahk_id " hwnd)
+        state := WinGetMinMax("ahk_id" hwnd)
 
 
-        ; winMon := GetMonitorAt(centerX, centerY)
+        ; if fullscreen
+        if (state == 1) {
+            WinGetPos(&x, &y, &w, &h, "ahk_id " hwnd)
 
 
-        ; MonitorGetWorkArea(winMon, &left, &top, &right, &bottom)
+            ; winMon := GetMonitorAt(centerX, centerY)
 
 
-        ;         return {
-        ;     left: left,
-        ;     top: top,
-        ;     bottom: bottom,
-        ;     right: right,
-        ;     width: right - left,
-        ;     height: bottom - top
-        ; }
+            ; MonitorGetWorkArea(winMon, &left, &top, &right, &bottom)
 
-        return {
-            left: x,
-            top: y,
-            bottom: y + h,
-            right: x + w,
-            width: w,
-            height: h
+
+            ;         return {
+            ;     left: left,
+            ;     top: top,
+            ;     bottom: bottom,
+            ;     right: right,
+            ;     width: right - left,
+            ;     height: bottom - top
+            ; }
+
+            return {
+                left: x,
+                top: y,
+                bottom: y + h,
+                right: x + w,
+                width: w,
+                height: h
+            }
         }
-    }
 
-    ; if normal
-    if (state == 0) {
+        ; if normal
+        if (state == 0) {
 
-        ; ; old wingetpos method
-        ; title := WinGetTitle("ahk_id " hwnd)
-        ; ; the window is maximised or normal
-        ; WinGetPos(&x, &y, &w, &h, "ahk_id " hwnd)
+            ; ; old wingetpos method
+            ; title := WinGetTitle("ahk_id " hwnd)
+            ; ; the window is maximised or normal
+            ; WinGetPos(&x, &y, &w, &h, "ahk_id " hwnd)
 
-        ; return {
-        ;     left: Floor((x) * scalingFactor),
-        ;     right: Floor((x + w) * scalingFactor),
-        ;     bottom: Floor((y + h) * scalingFactor),
-        ;     top: Floor((y) * scalingFactor),
-        ;     width: Floor((w) * scalingFactor),
-        ;     height: Floor((h) * scalingFactor)
-        ; }
+            ; return {
+            ;     left: Floor((x) * scalingFactor),
+            ;     right: Floor((x + w) * scalingFactor),
+            ;     bottom: Floor((y + h) * scalingFactor),
+            ;     top: Floor((y) * scalingFactor),
+            ;     width: Floor((w) * scalingFactor),
+            ;     height: Floor((h) * scalingFactor)
+            ; }
 
 
-        ; new DwmGetWindowAttribute DWMWA_EXTENDED_FRAME_BOUNDS method
+            ; new DwmGetWindowAttribute DWMWA_EXTENDED_FRAME_BOUNDS method
 
-        static DWMWA_EXTENDED_FRAME_BOUNDS := 9
-        rect := Buffer(16, 0)  ; RECT structure: 4 integers (4 bytes each)
-        hResult := DllCall("dwmapi\DwmGetWindowAttribute",
-            "Ptr", hwnd,
-            "UInt", DWMWA_EXTENDED_FRAME_BOUNDS,
-            "Ptr", rect,
-            "UInt", rect.Size)
-        if (hResult != 0)
-            throw OSError("DwmGetWindowAttribute failed", hResult)
-        extendedframeboundsleft := NumGet(rect, 0, "Int")
-        extendedframeboundstop := NumGet(rect, 4, "Int")
-        extendedframeboundsright := NumGet(rect, 8, "Int")
-        extendedframeboundsbottom := NumGet(rect, 12, "Int")
+            static DWMWA_EXTENDED_FRAME_BOUNDS := 9
+            rect := Buffer(16, 0)  ; RECT structure: 4 integers (4 bytes each)
+            hResult := DllCall("dwmapi\DwmGetWindowAttribute",
+                "Ptr", hwnd,
+                "UInt", DWMWA_EXTENDED_FRAME_BOUNDS,
+                "Ptr", rect,
+                "UInt", rect.Size)
+            if (hResult != 0)
+                throw OSError("DwmGetWindowAttribute failed", hResult)
+            extendedframeboundsleft := NumGet(rect, 0, "Int")
+            extendedframeboundstop := NumGet(rect, 4, "Int")
+            extendedframeboundsright := NumGet(rect, 8, "Int")
+            extendedframeboundsbottom := NumGet(rect, 12, "Int")
 
-        ; return {
-        ;     left: extendedframeboundsleft,
-        ;     top: extendedframeboundstop,
-        ;     bottom: extendedframeboundsbottom,
-        ;     right: extendedframeboundsright,
-        ;     width: extendedframeboundsright - extendedframeboundsleft,
-        ;     height: extendedframeboundsbottom - extendedframeboundstop
-        ; }
+            ; return {
+            ;     left: extendedframeboundsleft,
+            ;     top: extendedframeboundstop,
+            ;     bottom: extendedframeboundsbottom,
+            ;     right: extendedframeboundsright,
+            ;     width: extendedframeboundsright - extendedframeboundsleft,
+            ;     height: extendedframeboundsbottom - extendedframeboundstop
+            ; }
 
 
         }
@@ -568,19 +656,19 @@ GetWindowNormalPos(hwnd, scalingFactorOverride := 0) {
             right := NumGet(wp, 36, "Int")   ; rcNormalPosition.right
             bottom := NumGet(wp, 40, "Int")   ; rcNormalPosition.bottom
 
-        return {
-            left: Floor((left) * scalingFactor),
-            right: Floor((right) * scalingFactor),
-            bottom: Floor((bottom) * scalingFactor),
-            top: Floor((top) * scalingFactor),
-            width: Floor((right - left) * scalingFactor),
-            height: Floor((bottom - top) * scalingFactor),
-            ; state: showCmd = SW_SHOWMINIMIZED ? "minimized"
-            ;     : showCmd = SW_SHOWMAXIMIZED ? "maximized"
-            ;         : "normal"
+            return {
+                left: Floor((left) * scalingFactor),
+                right: Floor((right) * scalingFactor),
+                bottom: Floor((bottom) * scalingFactor),
+                top: Floor((top) * scalingFactor),
+                width: Floor((right - left) * scalingFactor),
+                height: Floor((bottom - top) * scalingFactor),
+                ; state: showCmd = SW_SHOWMINIMIZED ? "minimized"
+                ;     : showCmd = SW_SHOWMAXIMIZED ? "maximized"
+                ;         : "normal"
+            }
         }
-        }
-        }
+    }
 
 }
 
