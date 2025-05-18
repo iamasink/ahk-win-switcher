@@ -20,7 +20,6 @@ global DEBUG := false
 global RUN_AS_ADMIN := !DEBUG
 
 
-
 ; the background colour of the main switcher window
 global BACKGROUND_COLOUR := "202020"
 ; the colour of the selected window highlight
@@ -67,7 +66,6 @@ global OFFSET_BACKGROUND_Y := 0
 
 ; alt e bind
 global ENABLE_MOUSEMOVE_KEYBIND := true
-
 
 
 ; if not admin, start as admin
@@ -222,7 +220,7 @@ GetHWNDFromIndex(index) {
         WriteLog("alt released and tab pressed so doing the relevant logic")
         ; (runs once)
         HideSwitcher()
-        
+
         ; tempwindowstring := ""
         ; for index, w in windows {
         ;     tempwindowstring := tempwindowstring w.title "`n"
@@ -255,10 +253,10 @@ GetHWNDFromIndex(index) {
     ; SetTimer(AltDownLoop, -1)
     ChangeSelectedIndexBy(1)
     ; we can't have a delay of SWITCHER_DELAY here, because if alt+tab is continuously pressed, the timer will keep resetting.
-    SetTimer(AltDownLoop,-1)
+    SetTimer(AltDownLoop, -1)
 }
 
-*!+Tab::{
+*!+Tab:: {
     WriteLog("alt+shift+tab one")
     global tabPressed, altDown
     tabPressed := true
@@ -268,7 +266,7 @@ GetHWNDFromIndex(index) {
     ; SetTimer(AltDownLoop, -1)
     ChangeSelectedIndexBy(-1)
     ; we can't have a delay of SWITCHER_DELAY here, because if alt+tab is continuously pressed, the timer will keep resetting.
-    SetTimer(AltDownLoop,-1)
+    SetTimer(AltDownLoop, -1)
 }
 
 *!`:: {
@@ -276,7 +274,7 @@ GetHWNDFromIndex(index) {
     tabPressed := true
 
     HandleTilde(1)
-    SetTimer(AltDownLoop,-1)
+    SetTimer(AltDownLoop, -1)
 
 }
 
@@ -284,7 +282,7 @@ GetHWNDFromIndex(index) {
     global selectedMonitor, selectedIndex, tabPressed
     tabPressed := true
     HandleTilde(-1)
-    SetTimer(AltDownLoop,-1)
+    SetTimer(AltDownLoop, -1)
 
 }
 
@@ -348,7 +346,6 @@ AltDownLoop() {
 ; }
 
 
-
 *Esc:: {
     global altDown
     altDown := false
@@ -377,7 +374,6 @@ ChangeSelectedIndexBy(change) {
     UpdateSelected()
     ; switcherGui.Show()
 }
-
 
 
 #HotIf altDown && tabPressed
@@ -857,7 +853,7 @@ UpdateControls() {
 CreateOrUpdateControl(hwnd, x, y, w, h) {
     global switcherGuiSlots
     if (switcherGuiSlots.Has(hwnd)) {
-            switcherGuiSlots[hwnd].UpdateTitle()
+        switcherGuiSlots[hwnd].UpdateTitle()
 
         ; msgbox("updating " hwnd)
         if (switcherGuiSlots[hwnd].x = x &&
@@ -879,7 +875,7 @@ CreateOrUpdateControl(hwnd, x, y, w, h) {
         mywindowInfo := windowInfo(hwnd, x, y, w, h)
         mywindowInfo.SetPos(x, y, w, h)
         ; mywindowInfo.UpdateTitle()
-        
+
     }
 }
 
