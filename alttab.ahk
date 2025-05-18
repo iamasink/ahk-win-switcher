@@ -247,8 +247,10 @@ GetHWNDFromIndex(index) {
 
 *!Tab:: {
     WriteLog("alt+tab one")
-    global tabPressed
+    global tabPressed, altDown
     tabPressed := true
+    ; make sure altdown is set (for click->alt+tab again without letting go of alt etc)
+    altDown := true
     ; UpdateControls()
     ; SetTimer(AltDownLoop, -1)
     ChangeSelectedIndexBy(1)
@@ -258,8 +260,10 @@ GetHWNDFromIndex(index) {
 
 *!+Tab::{
     WriteLog("alt+shift+tab one")
-    global tabPressed
+    global tabPressed, altDown
     tabPressed := true
+    ; make sure altdown is set (for click->alt+tab again without letting go of alt etc)
+    altDown := true
     ; UpdateControls()
     ; SetTimer(AltDownLoop, -1)
     ChangeSelectedIndexBy(-1)
