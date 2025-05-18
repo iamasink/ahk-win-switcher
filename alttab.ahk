@@ -1370,90 +1370,90 @@ GetWindowIcon(hwnd) {
             return Dir '\' Match[1]
         }
 
-   GetLogoPath(Path) {
-        ;     LoopFileSize := 99999999
-        ;     SplitPath Path, , &Dir, &Extension, &NameNoExt
-        ;     pathcandidates := []
-        ;     loop files Dir '\' NameNoExt '.scale-*.' Extension {
-        ;         if A_LoopFileSize <= LoopFileSize && RegExMatch(A_LoopFileName, '\d+\.' Extension '$') { ; Avoid contrast files.
-        ;             LoopFilePath := A_LoopFilePath, LoopFileSize := A_LoopFileSize
-        ;             pathcandidates.Push(LoopFilePath)
-        ;             }
+        GetLogoPath(Path) {
+            ;     LoopFileSize := 99999999
+            ;     SplitPath Path, , &Dir, &Extension, &NameNoExt
+            ;     pathcandidates := []
+            ;     loop files Dir '\' NameNoExt '.scale-*.' Extension {
+            ;         if A_LoopFileSize <= LoopFileSize && RegExMatch(A_LoopFileName, '\d+\.' Extension '$') { ; Avoid contrast files.
+            ;             LoopFilePath := A_LoopFilePath, LoopFileSize := A_LoopFileSize
+            ;             pathcandidates.Push(LoopFilePath)
+            ;             }
 
-        ;             str := ""
-        ;             for i in pathcandidates {
-        ;                 str := str " " i
-        ;             }
-        ;             }
-        ;             MsgBox(str)
-        ; }
+            ;             str := ""
+            ;             for i in pathcandidates {
+            ;                 str := str " " i
+            ;             }
+            ;             }
+            ;             MsgBox(str)
+            ; }
 
 
-        SplitPath Path, , &Dir, &Extension, &NameNoExt
+            SplitPath Path, , &Dir, &Extension, &NameNoExt
 
-        ; allfiles := []
-        best := ""
-        besttype := 0
+            ; allfiles := []
+            best := ""
+            besttype := 0
 
-        target := 32
+            target := 32
 
-        test(type) {
-            if (type > besttype) {
-                best := A_LoopFilePath
-                besttype := type
+            test(type) {
+                if (type > besttype) {
+                    best := A_LoopFilePath
+                    besttype := type
+                }
             }
-        }
 
-        loop files Dir "\" "*.png" {
-            if RegExMatch(A_LoopFileName, ".*\.targetsize-256\." . Extension . "$") {
-                type := 256
+            loop files Dir "\" "*.png" {
+                if RegExMatch(A_LoopFileName, ".*\.targetsize-256\." . Extension . "$") {
+                    type := 256
 
-                test(type)
+                    test(type)
+                }
+                if RegExMatch(A_LoopFileName, ".*\.targetsize-96\." . Extension . "$") {
+                    type := 96
+                    test(type)
+                }
+                if RegExMatch(A_LoopFileName, ".*\.targetsize-72\." . Extension . "$") {
+                    type := 72
+
+                    test(type)
+                }
+                if RegExMatch(A_LoopFileName, ".*\.targetsize-48\." . Extension . "$") {
+                    type := 48
+
+                    test(type)
+                }
+                if RegExMatch(A_LoopFileName, ".*\.targetsize-36\." . Extension . "$") {
+                    type := 36
+
+                    test(type)
+                }
+                if RegExMatch(A_LoopFileName, ".*\.targetsize-32\." . Extension . "$") {
+                    type := 32
+                    test(type)
+
+                }
+                ; these are bad and don't fit in the frame correctly..
+                if RegExMatch(A_LoopFileName, ".*\.scale-400\." . Extension . "$") {
+                    type := 4
+
+                    test(type)
+                }
+                if RegExMatch(A_LoopFileName, ".*\.scale-200\." . Extension . "$") {
+                    type := 2
+
+                    test(type)
+                }
+                if RegExMatch(A_LoopFileName, ".*\.scale-100\." . Extension . "$") {
+                    type := 1
+
+                    test(type)
+                }
             }
-            if RegExMatch(A_LoopFileName, ".*\.targetsize-96\." . Extension . "$") {
-                type := 96
-                test(type)
-            }
-            if RegExMatch(A_LoopFileName, ".*\.targetsize-72\." . Extension . "$") {
-                type := 72
 
-                test(type)
-            }
-            if RegExMatch(A_LoopFileName, ".*\.targetsize-48\." . Extension . "$") {
-                type := 48
-
-                test(type)
-            }
-            if RegExMatch(A_LoopFileName, ".*\.targetsize-36\." . Extension . "$") {
-                type := 36
-
-                test(type)
-            }
-            if RegExMatch(A_LoopFileName, ".*\.targetsize-32\." . Extension . "$") {
-                type := 32
-                test(type)
-
-            }
-            ; these are bad and don't fit in the frame correctly..
-            if RegExMatch(A_LoopFileName, ".*\.scale-400\." . Extension . "$") {
-                type := 4
-
-                test(type)
-            }
-            if RegExMatch(A_LoopFileName, ".*\.scale-200\." . Extension . "$") {
-                type := 2
-
-                test(type)
-            }
-            if RegExMatch(A_LoopFileName, ".*\.scale-100\." . Extension . "$") {
-                type := 1
-
-                test(type)
-            }
-        }
-
-        ; MsgBox(best)
-        return best
+            ; MsgBox(best)
+            return best
         }
     }
 }
