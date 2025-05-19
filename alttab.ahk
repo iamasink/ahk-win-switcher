@@ -132,61 +132,12 @@ switcherGuiSlots := Map()
 BuildWindowList()
 UpdateControls()
 
+ShowSwitcher(true)
+HideSwitcher()
 
-UpdateSelected() {
-    global listOfWindows, switcherGuiSlots, selectedIndex, lastIndex, switcherShown
-    WriteLog("UpdateSelected - SelectedIndex: " selectedIndex " LastIndex: " lastIndex)
-    WriteLog("Window list length: " listOfWindows.Length)
-
-    ; find the hwnd in switcherGuiSlots
-
-    ; first remove old stuff
-    ; windowLookup := Map()
-    ; for index, hwnd in listOfWindows
-    ;     windowLookup[ hwnd ] := true
-
-    ; for hwnd, wininfo in switcherGuiSlots
-    ; {
-    ;     if !windowLookup.Has(hwnd)
-    ;     {
-    ;         wininfo.Destroy()
-    ;     }
-    ; }
-
-    for index, hwnd in listOfWindows {
-        try {
-            ; MsgBox("hwnd: " hwnd "`nindex: " index)
-
-            ; set if selected or not
-            switcherslot := switcherGuiSlots[hwnd]
-            if (index == selectedIndex) {
-                switcherslot.SetSelected(true)
-            } else {
-                switcherslot.SetSelected(false)
-            }
-
-            ; if (index == selectedIndex +1) {
-            ;     switcherslot.Redraw()
-            ; }
-        }
-
-    }
-}
-
-GetHWNDFromIndex(index) {
-    global listOfWindows
-    return listOfWindows[index]
-
-    ; old map stuff remove later
-    ; for hwnd, i in listOfWindows {
-    ;     if (i == index) {
-    ;         return hwnd
-    ;     }
-    ; }
-    ; return -1
-}
-
-
+; #endregion ====================================================================
+; #region MARK:                         declare hotkeys
+; ===============================================================================
 #HotIf
 *~LAlt:: {
     global altDown, altPressTime, showGUI, tabPressed, lastupdate
@@ -286,6 +237,59 @@ GetHWNDFromIndex(index) {
 
 }
 
+
+
+#HotIf altDown
+
+*Esc:: {
+    global altDown
+    altDown := false
+
+    HideSwitcher()
+}
+
+
+#HotIf altDown && tabPressed
+
+*1:: HandleNumber(1)
+*2:: HandleNumber(2)
+*3:: HandleNumber(3)
+*4:: HandleNumber(4)
+*5:: HandleNumber(5)
+*6:: HandleNumber(6)
+*7:: HandleNumber(7)
+*8:: HandleNumber(8)
+*9:: HandleNumber(9)
+*0:: HandleNumber(0)
+
+*WheelDown:: ChangeSelectedIndexBy(1)
+*WheelUp:: ChangeSelectedIndexBy(-1)
+
+
+*e:: {
+    if (!ENABLE_MOUSEMOVE_KEYBIND)
+        return
+
+    ; jump mouse to active win
+    global selectedIndex, listOfWindows
+
+    if (listOfWindows.Length > 0) {
+        win := listOfWindows[selectedIndex]
+    } else {
+        win := WinActive("A")
+    }
+
+    MoveMouseToWindowCenter(win)
+}
+
+*w:: {
+    CloseWindowAndUpdate(listOfWindows[selectedIndex])
+}
+
+; rebind scroll click to right click
+*MButton::RButton
+#HotIf
+
 AltDownLoop() {
     global altDown, altPressTime, showGUI, tabPressed, switcherShown, selectedIndex, lastIndex, listOfWindows, selectedMonitor, SWITCHER_DELAY, lastupdate
     ; tooltip("alt down`n" tabPressed "`n" selectedIndex "`n" lastIndex "`n" windows.Length "`n" showMonitor)
@@ -335,206 +339,11 @@ AltDownLoop() {
     }
 }
 
-#HotIf altDown
-; *Tab:: {
-;     MsgBox("hi")
-;     global tabPressed
-;     tabPressed := true
-;     ; UpdateControls()
-;     ; SetTimer(AltDownLoop, -1)
-;     ChangeSelectedIndexBy(1)
-; }
-
-
-*Esc:: {
-    global altDown
-    altDown := false
-
-    HideSwitcher()
-}
-
-
-ChangeSelectedIndexBy(change) {
-    global selectedIndex
-    WriteLog("ChangeSelectedIndexBy" change)
-
-    selectedIndex += change
-    if (selectedIndex > listOfWindows.Length) {
-        selectedIndex := 1
-    } else if (selectedIndex < 1) {
-        selectedIndex := listOfWindows.Length
-    }
-
-    BuildWindowList(selectedMonitor)
-    ; dont run this if the switcher isn't shown! or it will try do it twice on first alt+tab
-    if (switcherShown) {
-        ; update the controls for removed windows, resized windows etc.
-        UpdateControls()
-    }
-    UpdateSelected()
-    ; switcherGui.Show()
-}
-
-
-#HotIf altDown && tabPressed
-
-*1:: HandleNumber(1)
-*2:: HandleNumber(2)
-*3:: HandleNumber(3)
-*4:: HandleNumber(4)
-*5:: HandleNumber(5)
-*6:: HandleNumber(6)
-*7:: HandleNumber(7)
-*8:: HandleNumber(8)
-*9:: HandleNumber(9)
-*0:: HandleNumber(0)
-
-*WheelDown:: ChangeSelectedIndexBy(1)
-*WheelUp:: ChangeSelectedIndexBy(-1)
-
-
-*e:: {
-    if (!ENABLE_MOUSEMOVE_KEYBIND)
-        return
-
-    ; jump mouse to active win
-    global selectedIndex, listOfWindows
-
-    if (listOfWindows.Length > 0) {
-        win := listOfWindows[selectedIndex]
-    } else {
-        win := WinActive("A")
-    }
-
-    MoveMouseToWindowCenter(win)
-}
-
-*w:: {
-    CloseWindowAndUpdate(listOfWindows[selectedIndex])
-}
-
-CloseWindowAndUpdate(hwnd) {
-    global listOfWindows, selectedIndex, lastIndex, switcherGui
-    ; close the window
-    try {
-        WinClose("ahk_id " hwnd)
-    }
-
-
-    BuildWindowList(selectedMonitor)
-    if (selectedIndex > listOfWindows.Length) {
-        ChangeSelectedIndex(listOfWindows.Length)
-    } else if (selectedIndex < 1) {
-        ChangeSelectedIndex(1)
-    }
-
-    ; update controls cuz therell be a gap
-    UpdateControls()
-    ; update the now selected control
-    UpdateSelected()
-
-
-}
-
-MoveMouseToWindowCenter(hwnd) {
-
-    ; with mouse positions, its different to thumbnail stuff, override scaling to 100%
-    pos := GetWindowNormalPos(hwnd, 1)
-    x := pos.left
-    y := pos.top
-    w := pos.width
-    h := pos.height
-
-    ; WinGetPos(&x, &y, &w, &h, "ahk_id " hwnd)
-    centerX := x + (w // 2)
-    centerY := y + (h // 2)
-
-    BetterMouseMove(centerX, centerY, 5)
-}
-
-; improved MouseMove() function
-BetterMouseMove(x, y, steps := 50, sleepTime := 2) {
-    ; Smoothly animate mouse movement to the position
-    MouseGetPos(&mousex, &mousey)
-    stepX := (x - mousex) / steps
-    stepY := (y - mousey) / steps
-
-    loop steps {
-        DllCall("SetCursorPos", "Int", mousex += stepX, "Int", mousey += stepY)
-        Sleep(sleepTime)
-    }
-    ; Ensure the mouse ends up exactly at the center
-    DllCall("SetCursorPos", "Int", x, "Int", y)
-
-}
-
-; rebind scroll click to right click
-*MButton::RButton
-#HotIf
-
-HandleTilde(change) {
-    global selectedMonitor, selectedIndex
-    selectedMonitor += change
-    monitorCount := MonitorGetCount()
-    if selectedMonitor > monitorCount {
-        selectedMonitor := 1
-    }
-    if selectedMonitor < 1 {
-        selectedMonitor := monitorCount
-    }
-
-    selectedIndex += change
-    if (selectedIndex > listOfWindows.Length) {
-        selectedIndex := 1
-    } else if (selectedIndex < 1) {
-        selectedIndex := listOfWindows.Length
-    }
-
-
-    ; ToolTip("change: " change "`n" selectedMonitor "`n" tabPressed "`n" )
-    BuildWindowList(selectedMonitor)
-    ChangeSelectedIndex(1)
-
-    if (switcherShown) {
-        UpdateControls()
-    }
-
-    ; UpdateSelected()
-
-    ; ChangeSelectedIndexBy(1)
-    ; ChangeSelectedIndexBy(-1)
-
-
-    ; BuildWindowList(selectedMonitor)
-    ; dont run this if the switcher isn't shown! or it will try do it twice on first alt+tab
-    ; UpdateSelected()
-    ; switcherGui.Show()
-
-
-    UpdateControls()
-
-    ShowSwitcher()
-    UpdateSelected()
-
-}
-
-HandleNumber(num) {
-    global selectedMonitor, selectedIndex, lastIndex, tabPressed, listOfWindows
-    if (num > 0 && num < listOfWindows.Length) {
-        ChangeSelectedIndex(num)
-        UpdateSelected()
-        ; selectedIndex := num
-    } else {
-        ChangeSelectedIndex(listOfWindows.Length)
-        UpdateSelected()
-        ; selectedIndex := listOfWindows.Length
-    }
-}
-
+; #endregion ====================================================================
+; #region MARK:                         windowInfo class
+; ===============================================================================
 
 class windowInfo {
-
-
     hwnd := 0
     x := 0
     y := 0
@@ -709,6 +518,8 @@ class windowInfo {
     }
 
 
+
+
     Destroy() {
         ; destroy the thumbnail
         ; MsgBox("destroying thumbnail " this.thumbnailId "`nif you didnt close a window, you might've done something bad. ")
@@ -729,6 +540,187 @@ class windowInfo {
             switcherGuiSlots.Delete(this.hwnd)
         }
     }
+}
+
+
+; #endregion ====================================================================
+; #region MARK:                         functions
+; ===============================================================================
+
+CloseWindowAndUpdate(hwnd) {
+    global listOfWindows, selectedIndex, lastIndex, switcherGui
+    ; close the window
+    try {
+        WinClose("ahk_id " hwnd)
+    }
+
+
+    BuildWindowList(selectedMonitor)
+    if (selectedIndex > listOfWindows.Length) {
+        ChangeSelectedIndex(listOfWindows.Length)
+    } else if (selectedIndex < 1) {
+        ChangeSelectedIndex(1)
+    }
+
+    ; update controls cuz therell be a gap
+    UpdateControls()
+    ; update the now selected control
+    UpdateSelected()
+
+
+}
+
+MoveMouseToWindowCenter(hwnd) {
+
+    ; with mouse positions, its different to thumbnail stuff, override scaling to 100%
+    pos := GetWindowNormalPos(hwnd, 1)
+    x := pos.left
+    y := pos.top
+    w := pos.width
+    h := pos.height
+
+    ; WinGetPos(&x, &y, &w, &h, "ahk_id " hwnd)
+    centerX := x + (w // 2)
+    centerY := y + (h // 2)
+
+    BetterMouseMove(centerX, centerY, 5)
+}
+
+; improved MouseMove() function
+BetterMouseMove(x, y, steps := 50, sleepTime := 2) {
+    ; Smoothly animate mouse movement to the position
+    MouseGetPos(&mousex, &mousey)
+    stepX := (x - mousex) / steps
+    stepY := (y - mousey) / steps
+
+    loop steps {
+        DllCall("SetCursorPos", "Int", mousex += stepX, "Int", mousey += stepY)
+        Sleep(sleepTime)
+    }
+    ; Ensure the mouse ends up exactly at the center
+    DllCall("SetCursorPos", "Int", x, "Int", y)
+
+}
+
+ChangeSelectedIndexBy(change) {
+    global selectedIndex
+    WriteLog("ChangeSelectedIndexBy" change)
+
+    selectedIndex += change
+    if (selectedIndex > listOfWindows.Length) {
+        selectedIndex := 1
+    } else if (selectedIndex < 1) {
+        selectedIndex := listOfWindows.Length
+    }
+
+    BuildWindowList(selectedMonitor)
+    ; dont run this if the switcher isn't shown! or it will try do it twice on first alt+tab
+    if (switcherShown) {
+        ; update the controls for removed windows, resized windows etc.
+        UpdateControls()
+    }
+    UpdateSelected()
+    ; switcherGui.Show()
+}
+
+HandleTilde(change) {
+    global selectedMonitor, selectedIndex
+    selectedMonitor += change
+    monitorCount := MonitorGetCount()
+    if selectedMonitor > monitorCount {
+        selectedMonitor := 1
+    }
+    if selectedMonitor < 1 {
+        selectedMonitor := monitorCount
+    }
+
+    selectedIndex += change
+    if (selectedIndex > listOfWindows.Length) {
+        selectedIndex := 1
+    } else if (selectedIndex < 1) {
+        selectedIndex := listOfWindows.Length
+    }
+
+
+    ; ToolTip("change: " change "`n" selectedMonitor "`n" tabPressed "`n" )
+    BuildWindowList(selectedMonitor)
+    ChangeSelectedIndex(1)
+
+    UpdateControls()
+    UpdateSelected()
+    ShowSwitcher()
+
+
+
+}
+
+HandleNumber(num) {
+    global selectedMonitor, selectedIndex, lastIndex, tabPressed, listOfWindows
+    if (num > 0 && num < listOfWindows.Length) {
+        ChangeSelectedIndex(num)
+        UpdateSelected()
+        ; selectedIndex := num
+    } else {
+        ChangeSelectedIndex(listOfWindows.Length)
+        UpdateSelected()
+        ; selectedIndex := listOfWindows.Length
+    }
+}
+
+
+
+
+UpdateSelected() {
+    global listOfWindows, switcherGuiSlots, selectedIndex, lastIndex, switcherShown
+    WriteLog("UpdateSelected - SelectedIndex: " selectedIndex " LastIndex: " lastIndex)
+    WriteLog("Window list length: " listOfWindows.Length)
+
+    ; find the hwnd in switcherGuiSlots
+
+    ; first remove old stuff
+    ; windowLookup := Map()
+    ; for index, hwnd in listOfWindows
+    ;     windowLookup[ hwnd ] := true
+
+    ; for hwnd, wininfo in switcherGuiSlots
+    ; {
+    ;     if !windowLookup.Has(hwnd)
+    ;     {
+    ;         wininfo.Destroy()
+    ;     }
+    ; }
+
+    for index, hwnd in listOfWindows {
+        try {
+            ; MsgBox("hwnd: " hwnd "`nindex: " index)
+
+            ; set if selected or not
+            switcherslot := switcherGuiSlots[hwnd]
+            if (index == selectedIndex) {
+                switcherslot.SetSelected(true)
+            } else {
+                switcherslot.SetSelected(false)
+            }
+
+            ; if (index == selectedIndex +1) {
+            ;     switcherslot.Redraw()
+            ; }
+        }
+
+    }
+}
+
+GetHWNDFromIndex(index) {
+    global listOfWindows
+    return listOfWindows[index]
+
+    ; old map stuff remove later
+    ; for hwnd, i in listOfWindows {
+    ;     if (i == index) {
+    ;         return hwnd
+    ;     }
+    ; }
+    ; return -1
 }
 
 UpdateControls() {
@@ -837,7 +829,7 @@ UpdateControls() {
             switcherHeight := y
         }
         if (lastx - SWITCHER_ITEM_PADDING_WIDTH > switcherWidth) {
-            switcherWidth := lastx- SWITCHER_ITEM_PADDING_WIDTH 
+            switcherWidth := lastx - SWITCHER_ITEM_PADDING_WIDTH
         }
         if (rowWidth >= A_ScreenWidth * (SWITCHER_MAXSCREENWIDTH_PERCENTAGE)) {
             row += 1
@@ -878,6 +870,7 @@ CreateOrUpdateControl(hwnd, x, y, w, h) {
 
     }
 }
+
 
 RedrawAll() {
     for hwnd in switcherGuiSlots {
@@ -1049,7 +1042,7 @@ BuildWindowList(monitorNum := MonitorGetPrimary()) {
     }
 }
 
-ShowSwitcher() {
+ShowSwitcher(init := false) {
     global guiUpdateLock, switcherShown
     global switcherWidth, switcherHeight
     WriteLog("ShowSwitcher")
@@ -1058,9 +1051,9 @@ ShowSwitcher() {
         return
     }
     guiUpdateLock := true
-    w := switcherWidth + SWITCHER_PADDING_LEFT +2
+    w := switcherWidth + SWITCHER_PADDING_LEFT + 2
     h := switcherHeight += SWITCHER_PADDING_TOP + (1 * (SWITCHER_ITEM_MAXHEIGHT + OFFSET_THUMBNAIL_Y + 1))
-     
+
     x := (A_ScreenWidth - w) // 2
     y := (A_ScreenHeight - h) // 2
 
@@ -1070,7 +1063,11 @@ ShowSwitcher() {
     ; Sleep(100)
 
     switcherGui.AddText(, "monitor: " selectedMonitor)
-    switcherGui.Show("w" w " h" h " x" x " y" y)
+    if (init) {
+    switcherGui.Show("w" 0 " h" 0 " x" 0 " y" 0)
+    } else {
+        switcherGui.Show("w" w " h" h " x" x " y" y)
+    }
     ; switcherGui.Opt()
 
 
@@ -1329,7 +1326,7 @@ GetWindowIcon(hwnd) {
         ; MsgBox("looking for uwp path")
         if (iconCache.Has(hwnd)) {
             ; we've already fetched this application's icon, so let's not do it again :)
-            ; MsgBox("cache hit!")
+            WriteLog("uwp icon cache hit!")
             return iconCache[hwnd]
         }
 
