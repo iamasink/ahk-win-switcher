@@ -423,14 +423,14 @@ class windowInfo {
         ; Peep(this)
         try {
             this.textctl.Text := title
-            this.textctl.Redraw()
+            ; this.textctl.Redraw()
         }
     }
     SetLogo(logo) {
         this.logo := logo
         try {
             this.logoctl.Value := logo
-            this.logoctl.Redraw()
+            ; this.logoctl.Redraw()
         }
     }
 
@@ -1070,7 +1070,7 @@ ShowSwitcher(init := false) {
     ; switcherGui.Show("x10000 y10000 w" w " h" h)
     ; Sleep(100)
 
-    switcherGui.AddText(, "monitor: " selectedMonitor)
+    ; switcherGui.AddText("x0 y0 c" TEXT_COLOUR, "monitor: " selectedMonitor)
     if (init) {
         switcherGui.Show("w" 0 " h" 0 " x" 0 " y" 0)
     } else {
