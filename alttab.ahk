@@ -11,7 +11,9 @@ InstallKeybdHook(1)
 ; possibly prevent taskbar flashing on win activate
 #WinActivateForce
 
-
+; #endregion ====================================================================
+; #region MARK:                         config
+; ===============================================================================
 ; main config options
 global DEBUG := false
 
@@ -32,9 +34,8 @@ global SELECTED_TEXT_COLOUR := "101010"
 ; true = show thumbnails, horizonal layout, false = no thumbnails, vertical layout
 global USE_THUMBNAILS := true
 ; delay before showing the switcher, in ms
-; if its too low, weird stuff happens.
-; TODO: is this still an issue?
-global SWITCHER_DELAY := 100
+; TODO: make more reliable when higher delay
+global SWITCHER_DELAY := 0
 ; how often the open switcher will update passively, in ms
 global UPDATE_SPEED := 500
 
@@ -67,7 +68,9 @@ global OFFSET_BACKGROUND_Y := 0
 ; alt e bind
 global ENABLE_MOUSEMOVE_KEYBIND := true
 
-
+; #endregion ====================================================================
+; #region MARK:                         init
+; ===============================================================================
 ; if not admin, start as admin
 ; taken from https://www.autohotkey.com/boards/viewtopic.php?p=523250#p523250
 if (RUN_AS_ADMIN && !A_IsAdmin) {
@@ -114,6 +117,8 @@ global switcherHeight := 0
 global selectedMonitor := 0
 ; prevent weird race conditions when updating the gui, especially when creating thumbnails
 global guiUpdateLock := false
+
+global lastupdate := 0
 
 ; maybe realtime is overkill
 ProcessSetPriority("R")
@@ -236,7 +241,6 @@ HideSwitcher()
     SetTimer(AltDownLoop, -1)
 
 }
-
 
 
 #HotIf altDown
@@ -411,8 +415,10 @@ class windowInfo {
     SetTitle(title) {
         this.text := title
         ; Peep(this)
-        this.textctl.Text := title
-        this.textctl.Redraw()
+        try {
+            this.textctl.Text := title
+            this.textctl.Redraw()
+        }
     }
     SetLogo(logo) {
         this.logo := logo
@@ -516,8 +522,6 @@ class windowInfo {
         this.textctl.Redraw()
         this.logoctl.Redraw()
     }
-
-
 
 
     Destroy() {
@@ -651,7 +655,6 @@ HandleTilde(change) {
     ShowSwitcher()
 
 
-
 }
 
 HandleNumber(num) {
@@ -666,8 +669,6 @@ HandleNumber(num) {
         ; selectedIndex := listOfWindows.Length
     }
 }
-
-
 
 
 UpdateSelected() {
@@ -818,6 +819,7 @@ UpdateControls() {
 
 
         ; MsgBox("hwnd: " hwnd "`nindex: " index)
+
         y := SWITCHER_PADDING_TOP + (row * (SWITCHER_ITEM_MAXHEIGHT + OFFSET_THUMBNAIL_Y + 1))
         x := lastx
         lastx += w + SWITCHER_ITEM_PADDING_WIDTH
@@ -836,10 +838,7 @@ UpdateControls() {
             lastx := SWITCHER_PADDING_LEFT
 
         }
-
-
     }
-
 }
 
 CreateOrUpdateControl(hwnd, x, y, w, h) {
@@ -1064,7 +1063,7 @@ ShowSwitcher(init := false) {
 
     switcherGui.AddText(, "monitor: " selectedMonitor)
     if (init) {
-    switcherGui.Show("w" 0 " h" 0 " x" 0 " y" 0)
+        switcherGui.Show("w" 0 " h" 0 " x" 0 " y" 0)
     } else {
         switcherGui.Show("w" w " h" h " x" x " y" y)
     }
