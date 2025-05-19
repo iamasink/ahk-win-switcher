@@ -836,15 +836,15 @@ UpdateControls() {
         if (y > switcherHeight) {
             switcherHeight := y
         }
-        if (lastx > switcherWidth) {
-            switcherWidth := lastx
+        if (lastx - SWITCHER_ITEM_PADDING_WIDTH > switcherWidth) {
+            switcherWidth := lastx- SWITCHER_ITEM_PADDING_WIDTH 
         }
-
         if (rowWidth >= A_ScreenWidth * (SWITCHER_MAXSCREENWIDTH_PERCENTAGE)) {
             row += 1
             lastx := SWITCHER_PADDING_LEFT
 
         }
+
 
     }
 
@@ -1058,8 +1058,9 @@ ShowSwitcher() {
         return
     }
     guiUpdateLock := true
-    w := switcherWidth + 50
-    h := switcherHeight + 300
+    w := switcherWidth + SWITCHER_PADDING_LEFT +2
+    h := switcherHeight += SWITCHER_PADDING_TOP + (1 * (SWITCHER_ITEM_MAXHEIGHT + OFFSET_THUMBNAIL_Y + 1))
+     
     x := (A_ScreenWidth - w) // 2
     y := (A_ScreenHeight - h) // 2
 
