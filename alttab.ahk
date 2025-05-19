@@ -15,7 +15,7 @@ InstallKeybdHook(1)
 ; #region MARK:                         config
 ; ===============================================================================
 ; main config options
-global DEBUG := false
+global DEBUG := true
 
 ; required to alt tab from admin windows, eg task manager
 ; suggested true, but false can be useful for debugging
@@ -412,6 +412,12 @@ class windowInfo {
             this.SetTitle(newtitle)
         }
     }
+    UpdateIcon() {
+        newicon := GetWindowIcon(this.hwnd)
+        if (newicon != this.logo) {
+            this.SetLogo(newicon)
+        }
+    }
     SetTitle(title) {
         this.text := title
         ; Peep(this)
@@ -422,8 +428,10 @@ class windowInfo {
     }
     SetLogo(logo) {
         this.logo := logo
-        this.logoctl.Value := logo
-        this.logoctl.Redraw()
+        try {
+            this.logoctl.Value := logo
+            this.logoctl.Redraw()
+        }
     }
 
     SetPos(x, y, w := 0, h := 0) {
@@ -845,6 +853,7 @@ CreateOrUpdateControl(hwnd, x, y, w, h) {
     global switcherGuiSlots
     if (switcherGuiSlots.Has(hwnd)) {
         switcherGuiSlots[hwnd].UpdateTitle()
+        switcherGuiSlots[hwnd].UpdateIcon()
 
         ; msgbox("updating " hwnd)
         if (switcherGuiSlots[hwnd].x = x &&
@@ -1303,6 +1312,9 @@ GetMouseMonitor() {
 }
 
 GetWindowIcon(hwnd) {
+    processname := WinGetProcessName("ahk_id " hwnd)
+
+
     static hShell32 := DllCall("LoadLibrary", "Str", "shell32.dll", "Ptr")
 
     ; Try WM_GETICON first
