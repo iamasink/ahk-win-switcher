@@ -1312,6 +1312,9 @@ GetMouseMonitor() {
 }
 
 GetWindowIcon(hwnd) {
+    if (!WinExist("ahk_id " hwnd)) {
+        return ""
+    }
     processname := WinGetProcessName("ahk_id " hwnd)
 
 
@@ -1319,16 +1322,25 @@ GetWindowIcon(hwnd) {
 
     ; Try WM_GETICON first
     ; try if hIcon := SendMessage(0x7F, 0, 0, , "ahk_id " hwnd)  ; WM_GETICON ICON_SMALL
-    try if hIcon := SendMessage(0x7F, 1, 0, , "ahk_id " hwnd)  ; WM_GETICON ICON_BIG
-        return "HICON:" hIcon
+    try {
 
+        try if hIcon := SendMessage(0x7F, 1, 0, , "ahk_id " hwnd)  ; WM_GETICON ICON_BIG
+            return "HICON:" hIcon
+        
+    }
     ; Try class icons
-    if hIcon := DllCall("GetClassLongPtr", "Ptr", hwnd, "Int", -14, "Ptr")  ; GCL_HICONSM
-        return "HICON:" hIcon
+    try {
 
-    if hIcon := GetLargestUWPLogoPath(hwnd)
-        return hIcon
+        if hIcon := DllCall("GetClassLongPtr", "Ptr", hwnd, "Int", -14, "Ptr")  ; GCL_HICONSM
+            return "HICON:" hIcon
+        
+    }
+    try {
 
+        if hIcon := GetLargestUWPLogoPath(hwnd)
+            return hIcon
+        
+    }
     return ""
 
     ; tysm https://www.autohotkey.com/boards/viewtopic.php?t=127727
