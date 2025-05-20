@@ -35,13 +35,14 @@ global SELECTED_TEXT_COLOUR := "101010"
 global USE_THUMBNAILS := true
 ; delay before showing the switcher, in ms
 ; TODO: make more reliable when higher delay
-global SWITCHER_DELAY := 0
+global SWITCHER_DELAY := 250
 ; how often the open switcher will update passively, in ms
+; to catch size changes, title changes, logo changes, etc.
 global UPDATE_SPEED := 500
 
 ; how often to run the alt loop.
 ; note this doesnt affect how fast alt+tab works, only the visuals
-global ALT_CHECK_DELAY := 1
+global ALT_CHECK_DELAY := 10
 
 
 global SWITCHER_PADDING_LEFT := 10
@@ -328,6 +329,14 @@ AltDownLoop() {
                         ; show the switcher (even though its already shown) to update the size if needbe
                         if (switcherShown) {
                             ShowSwitcher()
+                        }
+                        ; get alt key state
+                        if (GetKeyState("LAlt", "P")) {
+                            ; alt is down
+                        } else {
+                            ; alt isn't down.. so hide the switcher (it might get stuck sometimes so do this :))
+                            HideSwitcher()
+                            return
                         }
                         ; ToolTip("hi")
 
