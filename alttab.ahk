@@ -35,7 +35,7 @@ global SELECTED_TEXT_COLOUR := "101010"
 global USE_THUMBNAILS := true
 ; delay before showing the switcher, in ms
 ; TODO: make more reliable when higher delay
-global SWITCHER_DELAY := 250
+global SWITCHER_DELAY := 100
 ; how often the open switcher will update passively, in ms
 ; to catch size changes, title changes, logo changes, etc.
 global UPDATE_SPEED := 500
@@ -121,8 +121,7 @@ global guiUpdateLock := false
 
 global lastupdate := 0
 
-; maybe realtime is overkill
-ProcessSetPriority("R")
+ProcessSetPriority("H")
 
 
 ; setup the gui
