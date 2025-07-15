@@ -957,10 +957,10 @@ BuildWindowList(monitorNum := MonitorGetPrimary()) {
 
         ; check window transparency
         ; maybe this is weird with some fancy windows..
-        transColor := 0, transAlpha := 0, flags := 0
-        if DllCall("GetLayeredWindowAttributes", "Ptr", hwnd, "UInt*", &transColor, "UChar*", &transAlpha, "UInt*", &flags)
-            if (transAlpha = 0) || (flags & 0x1) ; LWA_ALPHA=0x2, LWA_COLORKEY=0x1
-                continue
+        ; transColor := 0, transAlpha := 0, flags := 0
+        ; if DllCall("GetLayeredWindowAttributes", "Ptr", hwnd, "UInt*", &transColor, "UChar*", &transAlpha, "UInt*", &flags)
+        ;     if (transAlpha = 0) || (flags & 0x1) ; LWA_ALPHA=0x2, LWA_COLORKEY=0x1
+        ;         continue
 
         title := WinGetTitle("ahk_id " hwnd)
         ; check title with weird regex
