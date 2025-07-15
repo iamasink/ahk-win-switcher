@@ -160,7 +160,11 @@ GetWindowIcon(hwnd) {
     if (!WinExist("ahk_id " hwnd)) {
         return ""
     }
-    processname := WinGetProcessName("ahk_id " hwnd)
+    try {
+        processname := WinGetProcessName("ahk_id " hwnd)
+    } catch {
+        processname := "?"
+    }
 
 
     static hShell32 := DllCall("LoadLibrary", "Str", "shell32.dll", "Ptr")

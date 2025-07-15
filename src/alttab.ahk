@@ -11,6 +11,7 @@ CoordMode("Mouse", "Screen")
 
 InstallKeybdHook(1)
 
+
 ; possibly prevent taskbar flashing on win activate
 #WinActivateForce
 
@@ -18,7 +19,7 @@ InstallKeybdHook(1)
 ; #region MARK:                         config
 ; ===============================================================================
 ; main config options
-global DEBUG := true
+global DEBUG := false
 
 ; required to alt tab from admin windows, eg task manager
 ; suggested true, but false can be useful for debugging
@@ -35,10 +36,10 @@ global TEXT_COLOUR := "ffffff"
 global SELECTED_TEXT_COLOUR := "101010"
 
 ; true = show thumbnails, horizonal layout, false = no thumbnails, vertical layout
-global USE_THUMBNAILS := true
+global USE_THUMBNAILS := true ; unused
 ; delay before showing the switcher, in ms
 ; TODO: make more reliable when higher delay
-global SWITCHER_DELAY := 250
+global SWITCHER_DELAY := 0
 ; how often the open switcher will update passively, in ms
 ; to catch size changes, title changes, logo changes, etc.
 global UPDATE_SPEED := 500
@@ -124,7 +125,8 @@ global guiUpdateLock := false
 
 global lastupdate := 0
 
-ProcessSetPriority("H")
+
+ProcessSetPriority("R")
 
 
 ; setup the gui
@@ -196,9 +198,9 @@ HideSwitcher()
         selectedMonitor := 0
         altDown := false
         HideSwitcher()
-
     } else {
         ; ToolTip("no tab", , , 10)
+        HideSwitcher()
     }
 }
 
@@ -672,8 +674,6 @@ HandleTilde(change) {
     UpdateControls()
     UpdateSelected()
     ShowSwitcher()
-
-
 }
 
 HandleNumber(num) {
@@ -732,7 +732,10 @@ UpdateSelected() {
 
 GetHWNDFromIndex(index) {
     global listOfWindows
-    return listOfWindows[index]
+    if (listOfWindows[index]) {
+        return listOfWindows[index]
+    }
+    else return 0
 
     ; old map stuff remove later
     ; for hwnd, i in listOfWindows {
@@ -822,7 +825,14 @@ UpdateControls() {
 
         ; aspect ratio in terms of width = height * aspectratio
         ; so height = width / aspectratio
-        aspectratio := (sourceW / sourceH)
+
+        try {
+            aspectratio := (sourceW / sourceH)
+        } catch {
+            ; prevent divide by zero error
+            aspectratio := 1
+        }
+
 
         ; set size based on maxheight and aspect ratio
         h := Floor(SWITCHER_ITEM_MAXHEIGHT)
