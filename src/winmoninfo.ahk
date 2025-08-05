@@ -41,7 +41,11 @@ GetWindowNormalPos(hwnd, scalingFactorOverride := 0) {
 
     ; MsgBox("dpi: " dpi)
 
-    state := WinGetMinMax("ahk_id" hwnd)
+    try {
+        state := WinGetMinMax("ahk_id" hwnd)
+    } catch {
+        state := 2
+    }
 
 
     ; if fullscreen
