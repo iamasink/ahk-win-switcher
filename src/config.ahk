@@ -4,6 +4,8 @@
 ; #region MARK:                         config
 ; ===============================================================================
 ; main config options
+
+;
 global DEBUG := false
 
 ; required to alt tab from admin windows, eg task manager
@@ -24,7 +26,7 @@ global SELECTED_TEXT_COLOUR := "101010"
 global USE_THUMBNAILS := true ; unused
 ; delay before showing the switcher, in ms
 ; TODO: make more reliable when higher delay
-global SWITCHER_DELAY := 0
+global SWITCHER_DELAY := 100
 ; how often the open switcher will update passively, in ms
 ; to catch size changes, title changes, logo changes, etc.
 global UPDATE_SPEED := 500
