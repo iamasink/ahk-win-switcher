@@ -65,7 +65,7 @@ global switcherWidth := 0
 global switcherHeight := 0
 
 
-global selectedMonitor := 0
+global selectedMonitor := 1
 ; prevent weird race conditions when updating the gui, especially when creating thumbnails
 global guiUpdateLock := false
 
@@ -242,20 +242,17 @@ HideSwitcher()
 }
 
 ; rebind scroll click to right click
+; (its easier, so we can use contextmenu on the gui. over using another hotkey)
 *MButton::RButton
 #HotIf
 
 AltDownLoop() {
     global altDown, altPressTime, showGUI, tabPressed, switcherShown, selectedIndex, lastIndex, listOfWindows, selectedMonitor, SWITCHER_DELAY, lastupdate
-    ; tooltip("alt down`n" tabPressed "`n" selectedIndex "`n" lastIndex "`n" windows.Length "`n" showMonitor)
-    ; tabtext := tabPressed ? "tab pressed" : "no tab pressed"
-    ; ToolTip("Alt is being held down.`nTab Status: " tabtext "`nSelected Index: " selectedIndex "`nLast Index: " lastIndex "`nNumber of Windows: " windows.Length "`nMonitor: " showMonitor "`nAlt Press Time: " altPressTime, , , 2)
-    ; altDown := GetKeyState("LAlt", "P")
 
 
     if (altDown) {
         if (tabPressed) {
-            ; remember, this runs repeatedly if tab has been pressed since alt was down
+            ; this runs *repeatedly* if tab has been pressed since alt was down
 
             ; update the window list
             ; BuildWindowList(selectedMonitor)
@@ -288,7 +285,6 @@ AltDownLoop() {
                             HideSwitcher()
                             return
                         }
-                        ; ToolTip("hi")
 
                         lastupdate := A_TickCount
                     }
@@ -335,7 +331,7 @@ class windowInfo {
 
         this.text := WinGetTitle("ahk_id " hwnd)
         this.textctl := switcherGui.AddText("h16  c" TEXT_COLOUR, this.text)
-        ; this.textctl.SetFont("", "Segoe UI")
+
         this.logo := GetWindowIcon(hwnd)
         this.logoctl := switcherGui.addPicture(" w32 h32", this.logo)
 
@@ -356,13 +352,6 @@ class windowInfo {
                 100
             )
 
-        ; this sets the pos of everything and updates the x, y, w, h values :)
-        ; this.SetPos(x, y, w, h)
-
-        ; this.backgroundctl.Visible := true
-        ; this.textctl.Visible := true
-        ; this.logoctl.Visible := true
-
 
     }
     UpdateTitle() {
@@ -379,44 +368,24 @@ class windowInfo {
     }
     SetTitle(title) {
         this.text := title
-        ; Peep(this)
         try {
             this.textctl.Text := title
-            ; this.textctl.Redraw()
         }
     }
     SetLogo(logo) {
         this.logo := logo
         try {
             this.logoctl.Value := logo
-            ; this.logoctl.Redraw()
         }
     }
 
     SetPos(x, y, w := 0, h := 0) {
 
 
-        ; if (w == 0) {
-        ;     w := 100
-        ; } else {
-        ;     w := w
-        ; }
-        ; if (h == 0) {
-        ;     h := 50
-        ; } else {
-        ;     h := h
-        ; }
-        ; if (this.x == x && this.y == y && this.w == w && this.h == h) {
-        ;     MsgBox("no change!")
-        ;     return
-        ; }
-
         if (this.x == x && this.y == y && this.w == w && this.h == h) {
             ; MsgBox("this doesn=t need to move! `n" this.x " " this.y " " x " " y)
             return
         }
-
-        ; MsgBox("moving " this.hwnd " from " this.x " " this.y " to " x " " y " " w " " h)
 
 
         this.x := x
@@ -454,17 +423,6 @@ class windowInfo {
             bgColour := SELECTED_BACKGROUND_COLOUR
             textColour := SELECTED_TEXT_COLOUR
 
-            ;             this.backgroundctl.Opt("Background" SELECTED_BACKGROUND_COLOUR)
-            ;             this.logoctl.Opt("Background" SELECTED_BACKGROUND_COLOUR)
-            ;             this.textctl.Opt("Background" SELECTED_BACKGROUND_COLOUR)
-            ;             ; this will redraw the text
-            ;             this.textctl.Opt("c" SELECTED_TEXT_COLOUR)
-            ; ; redraw these by changing their colour property, this doesnt actually change anything
-            ; ; but does trick it into redrawing.
-
-            ;             this.backgroundctl.Opt("c" SELECTED_TEXT_COLOUR)
-
-            ;             this.logoctl.Opt("c" SELECTED_TEXT_COLOUR)
         } else {
             this.isSelected := false
 
@@ -550,7 +508,6 @@ MoveMouseToWindowCenter(hwnd) {
     w := pos.width
     h := pos.height
 
-    ; WinGetPos(&x, &y, &w, &h, "ahk_id " hwnd)
     centerX := x + (w // 2)
     centerY := y + (h // 2)
 
@@ -559,7 +516,7 @@ MoveMouseToWindowCenter(hwnd) {
 
 ; improved MouseMove() function
 BetterMouseMove(x, y, steps := 50, sleepTime := 2) {
-    ; Smoothly animate mouse movement to the position
+    ; smoothly animate mouse movement to the position
     MouseGetPos(&mousex, &mousey)
     stepX := (x - mousex) / steps
     stepY := (y - mousey) / steps
@@ -568,7 +525,9 @@ BetterMouseMove(x, y, steps := 50, sleepTime := 2) {
         DllCall("SetCursorPos", "Int", mousex += stepX, "Int", mousey += stepY)
         Sleep(sleepTime)
     }
-    ; Ensure the mouse ends up exactly at the center
+
+    ; ensure the mouse ends up exactly at the center
+    ; because of various reasons, different monitors (+littlebigmouse)
     DllCall("SetCursorPos", "Int", x, "Int", y)
 
 }
@@ -591,7 +550,6 @@ ChangeSelectedIndexBy(change) {
         UpdateControls()
     }
     UpdateSelected()
-    ; switcherGui.Show()
 }
 
 HandleTilde(change) {
@@ -612,8 +570,6 @@ HandleTilde(change) {
         selectedIndex := listOfWindows.Length
     }
 
-
-    ; ToolTip("change: " change "`n" selectedMonitor "`n" tabPressed "`n" )
     BuildWindowList(selectedMonitor)
     ChangeSelectedIndex(1)
 
@@ -627,11 +583,9 @@ HandleNumber(num) {
     if (num > 0 && num < listOfWindows.Length) {
         ChangeSelectedIndex(num)
         UpdateSelected()
-        ; selectedIndex := num
     } else {
         ChangeSelectedIndex(listOfWindows.Length)
         UpdateSelected()
-        ; selectedIndex := listOfWindows.Length
     }
 }
 
@@ -641,24 +595,9 @@ UpdateSelected() {
     WriteLog("UpdateSelected - SelectedIndex: " selectedIndex " LastIndex: " lastIndex)
     WriteLog("Window list length: " listOfWindows.Length)
 
-    ; find the hwnd in switcherGuiSlots
-
-    ; first remove old stuff
-    ; windowLookup := Map()
-    ; for index, hwnd in listOfWindows
-    ;     windowLookup[ hwnd ] := true
-
-    ; for hwnd, wininfo in switcherGuiSlots
-    ; {
-    ;     if !windowLookup.Has(hwnd)
-    ;     {
-    ;         wininfo.Destroy()
-    ;     }
-    ; }
 
     for index, hwnd in listOfWindows {
         try {
-            ; MsgBox("hwnd: " hwnd "`nindex: " index)
 
             ; set if selected or not
             switcherslot := switcherGuiSlots[hwnd]
@@ -667,10 +606,6 @@ UpdateSelected() {
             } else {
                 switcherslot.SetSelected(false)
             }
-
-            ; if (index == selectedIndex +1) {
-            ;     switcherslot.Redraw()
-            ; }
         }
 
     }
@@ -683,39 +618,12 @@ GetHWNDFromIndex(index) {
     }
     else return 0
 
-    ; old map stuff remove later
-    ; for hwnd, i in listOfWindows {
-    ;     if (i == index) {
-    ;         return hwnd
-    ;     }
-    ; }
-    ; return -1
 }
 
 UpdateControls() {
     global switcherGuiSlots, listOfWindows, selectedIndex, lastIndex
     global switcherGui, selectedMonitor, switcherWidth, switcherHeight
 
-    ; y := 50
-
-    ; first remove any old windows
-    ; for hwnd, mywindowInfo in switcherGuiSlots {
-    ;     if !listOfWindows.Has(hwnd) {
-    ;         ; MsgBox("destroying " hwnd)
-    ;         mywindowInfo.Destroy()
-    ;     }
-    ; }
-
-    ; for _, win in listOfWindows {
-    ;     if (win.hwnd = hwnd) {
-    ;         found := true
-    ;         break
-    ;     }
-    ; }
-    ; if !found {
-    ;     Peep(listOfWindows, switcherGuiSlots, wininfo, hwnd)
-    ;     wininfo.Destroy()
-    ; }
 
     ; first remove unneeded windows
     windowLookup := Map()
@@ -728,14 +636,9 @@ UpdateControls() {
     ; sometimes this doesnt function correctly. IDK
     for hwnd, wininfo in switcherGuiSlots {
         if !windowLookup.Has(hwnd) {
-            ; if (DEBUG) MsgBox("destroying. this is bad unless you closed a window")
             wininfo.Destroy()
         }
     }
-
-
-    ; Peep(windowLookup)
-
 
     row := 0
     rowWidth := 0
@@ -793,8 +696,6 @@ UpdateControls() {
         }
 
 
-        ; MsgBox("hwnd: " hwnd "`nindex: " index)
-
         y := SWITCHER_PADDING_TOP + (row * (SWITCHER_ITEM_MAXHEIGHT + OFFSET_THUMBNAIL_Y + 1))
         x := lastx
         lastx += w + SWITCHER_ITEM_PADDING_WIDTH
@@ -833,8 +734,6 @@ CreateOrUpdateControl(hwnd, x, y, w, h) {
 
         } else {
             ; MsgBox("moving hwnd:" hwnd)
-            ; title := WinGetTitle("ahk_id " hwnd)
-            ; ToolTip("moving hwnd:" hwnd ", title: " title)
             switcherGuiSlots[hwnd].SetPos(x, y, w, h)
         }
     } else {
@@ -921,14 +820,8 @@ BuildWindowList(monitorNum := MonitorGetPrimary()) {
         if (winMon != monitorNum)
             continue
 
-        ; if !existingHWNDs.Has(hwnd) {
-        ; windows.Push({ hwnd: hwnd, title: title })
-        ; set the order it should be in the list
-        ; listOfWindows[hwnd] := listindex
         listOfWindows.Push(hwnd)
         listindex++
-        ; existingHWNDs.Set(hwnd, true)
-        ; }
     }
 }
 
@@ -948,11 +841,6 @@ ShowSwitcher(init := false) {
     y := (A_ScreenHeight - h) // 2
 
 
-    ; prevent flashing
-    ; switcherGui.Show("x10000 y10000 w" w " h" h)
-    ; Sleep(100)
-
-    ; switcherGui.AddText("x0 y0 c" TEXT_COLOUR, "monitor: " selectedMonitor)
     if (init) {
         switcherGui.Show("w" 0 " h" 0 " x" 0 " y" 0)
     } else {
@@ -968,11 +856,7 @@ TextClick(ctl := '', index := 1, text := '', idk := '', ctl2 := 0) {
     global selectedIndex, altDown, listOfWindows, lastIndex, tabPressed
     WriteLog("TextClick")
 
-    ; MsgBox("hi " ctl2.hwnd)
-
-    ; HideSwitcher()
     ; set the index then act as if alt was released
-    ; selectedIndex := index
     ChangeSelectedIndex(index)
     tabPressed := false
     altDown := false
@@ -987,18 +871,9 @@ TextClick(ctl := '', index := 1, text := '', idk := '', ctl2 := 0) {
 
 TextMiddleClick(ctl, index, text, idk := "", ctl2 := 0, *) {
     global selectedIndex, altDown
-    ; close window from hwnd
-    ; WinClose("ahk_id " ctl2.hwnd)
 
-    ; ; we could destroy the control here, but some windows won't close from just one winclose, so its a bit slower but more reliable visual feedback
-    ; ; update selected index, should it be now invalid
-    ; if (selectedIndex > listOfWindows.Length) {
-    ;     selectedIndex := listOfWindows.Length
-    ; } else if (selectedIndex < 1) {
-    ;     selectedIndex := 1
-    ; }
-
-    ; UpdateControls()
+    ; we could destroy the control here, but some windows won't close from just one winclose,
+    ; so its a bit slower but more reliable visual feedback to just update later.
 
     CloseWindowAndUpdate(ctl2.hwnd)
 }
@@ -1014,25 +889,19 @@ ChangeSelectedIndex(index) {
 
 HideSwitcher() {
     global switcherGui, switcherShown
-    ; switcherGui.Minimize()
+
     WriteLog("HideSwitcher")
     switcherGui.Show("Hide")
     switcherShown := false
 }
 
 FocusWindow(hwnd) {
-    ; WinActivate("ahk_id " hwnd)
-    ; try DllCall("SetForegroundWindow", "Ptr", hwnd)
     WriteLog("FocusWindow" hwnd)
 
     if !WinExist("ahk_id " hwnd)
         return false
 
     WinActivate("ahk_id " hwnd)
-    ; Sleep(10)
-    ; activate with dll
-    ; nvm this is not needed
-    ; DllCall("SetForegroundWindow", "Ptr", hwnd)
 
     return true
 }
