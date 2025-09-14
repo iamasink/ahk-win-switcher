@@ -901,6 +901,9 @@ FocusWindow(hwnd) {
     if !WinExist("ahk_id " hwnd)
         return false
 
+    ; alt up to hopefully prevent weird stuff
+    Send("{Alt Up}")
+
     WinActivate("ahk_id " hwnd)
 
     return true
