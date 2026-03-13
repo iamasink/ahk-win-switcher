@@ -65,7 +65,7 @@ global switcherWidth := 0
 global switcherHeight := 0
 
 
-global selectedMonitor := 1
+global selectedMonitor := 0
 ; prevent weird race conditions when updating the gui, especially when creating thumbnails
 global guiUpdateLock := false
 
@@ -613,10 +613,11 @@ UpdateSelected() {
 
 GetHWNDFromIndex(index) {
     global listOfWindows
-    if (listOfWindows[index]) {
+    WriteLog("GetHWNDFromIndex( " index " )")
+    if (listOfWindows.Length > index && listOfWindows[index]) {
         return listOfWindows[index]
     }
-    else return 0
+    else return -1
 
 }
 
@@ -829,27 +830,29 @@ ShowSwitcher(init := false) {
     global guiUpdateLock, switcherShown
     global switcherWidth, switcherHeight
     WriteLog("ShowSwitcher")
-    switcherShown := true
-    if (guiUpdateLock) {
-        return
+    try {
+        switcherShown := true
+        if (guiUpdateLock) {
+            return
+        }
+        guiUpdateLock := true
+        w := switcherWidth + SWITCHER_PADDING_LEFT + 2
+        h := switcherHeight + SWITCHER_PADDING_TOP + (1 * (SWITCHER_ITEM_MAXHEIGHT + OFFSET_THUMBNAIL_Y + 1))
+
+        x := (A_ScreenWidth - w) // 2
+        y := (A_ScreenHeight - h) // 2
+
+
+        if (init) {
+            switcherGui.Show("w" 0 " h" 0 " x" 0 " y" 0)
+        } else {
+            switcherGui.Show("w" w " h" h " x" x " y" y)
+        }
+        ; switcherGui.Opt()
     }
-    guiUpdateLock := true
-    w := switcherWidth + SWITCHER_PADDING_LEFT + 2
-    h := switcherHeight += SWITCHER_PADDING_TOP + (1 * (SWITCHER_ITEM_MAXHEIGHT + OFFSET_THUMBNAIL_Y + 1))
-
-    x := (A_ScreenWidth - w) // 2
-    y := (A_ScreenHeight - h) // 2
-
-
-    if (init) {
-        switcherGui.Show("w" 0 " h" 0 " x" 0 " y" 0)
-    } else {
-        switcherGui.Show("w" w " h" h " x" x " y" y)
+    finally {
+        guiUpdateLock := false
     }
-    ; switcherGui.Opt()
-
-
-    guiUpdateLock := false
 }
 
 TextClick(ctl := '', index := 1, text := '', idk := '', ctl2 := 0) {
@@ -898,8 +901,10 @@ HideSwitcher() {
 FocusWindow(hwnd) {
     WriteLog("FocusWindow" hwnd)
 
-    if !WinExist("ahk_id " hwnd)
+    if !WinExist("ahk_id " hwnd) {
+        WriteLog("  doesn't exist " hwnd)
         return false
+    }
 
     ; alt up to hopefully prevent weird stuff
     Send("{Alt Up}")
